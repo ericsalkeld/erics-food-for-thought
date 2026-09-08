@@ -27,8 +27,13 @@
         
         .section-title { font-size: 0.95rem; font-weight: 700; color: #38bdf8; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
         
-        input[type="text"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 12px; font-size: 0.85rem; }
+        .search-container { position: relative; margin-bottom: 12px; }
+        input[type="text"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.85rem; }
         
+        .suggestions-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #0f172a; border: 1px solid #0284c7; border-radius: 8px; max-height: 160px; overflow-y: auto; z-index: 50; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .s-item { padding: 8px 12px; font-size: 0.8rem; cursor: pointer; border-bottom: 1px solid #1e293b; }
+        .s-item:hover { background: #0284c7; color: white; }
+
         .chip-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
         .sub-chip { background: #0f172a; border: 1px solid #334155; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; color: #cbd5e1; }
         .sub-chip.selected-modern { background: #0284c7; border-color: #38bdf8; color: white; font-weight: 600; }
@@ -37,6 +42,8 @@
         .slider-group { background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 16px; }
         .slider-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px; color: #cbd5e1; }
         input[type="range"] { width: 100%; }
+
+        .error-banner { background: #7f1d1d; border: 1px solid #ef4444; color: #fecaca; padding: 12px; border-radius: 8px; font-size: 0.85rem; text-align: center; margin-bottom: 16px; display: none; }
 
         #deck-screen { display: none; flex-direction: column; flex: 1; }
         
@@ -86,6 +93,9 @@
                 </div>
             </header>
 
+            <div id="error-banner" class="error-banner"></div>
+
+            <!-- STEP 1 -->
             <div id="step-1" class="step-container active">
                 <div class="section-title">Step 1: Choose Mix Ratio</div>
                 <div class="slider-group">
@@ -98,9 +108,14 @@
                 <button class="btn" style="width:100%; padding:10px;" onclick="goToStep(2)">Next: Modern Topics ➔</button>
             </div>
 
+            <!-- STEP 2 -->
             <div id="step-2" class="step-container">
                 <div class="section-title">Step 2: Filter Modern Preprints</div>
-                <input type="text" id="modern-custom-search" placeholder="Search custom topic (e.g. Neutrino Physics, Quantum Optics)...">
+                <div class="search-container">
+                    <input type="text" id="modern-search" placeholder="Type specific search (e.g. Nuclear spin)..." oninput="searchSuggest('modern', this.value)">
+                    <div id="modern-sug" class="suggestions-dropdown"></div>
+                </div>
+                <div id="modern-active-tags" class="chip-container"></div>
                 <div id="modern-drawers"></div>
                 <div style="display:flex; gap:8px;">
                     <button class="btn btn-outline" style="flex:1;" onclick="goToStep(1)">⬅ Back</button>
@@ -108,9 +123,14 @@
                 </div>
             </div>
 
+            <!-- STEP 3 -->
             <div id="step-3" class="step-container">
                 <div class="section-title">Step 3: Filter Classic Literature</div>
-                <input type="text" id="classic-custom-search" placeholder="Search custom topic (e.g. Behavioral Psychology, Relativity)...">
+                <div class="search-container">
+                    <input type="text" id="classic-search" placeholder="Type specific search (e.g. General Psychology)..." oninput="searchSuggest('classic', this.value)">
+                    <div id="classic-sug" class="suggestions-dropdown"></div>
+                </div>
+                <div id="classic-active-tags" class="chip-container"></div>
                 <div id="classic-drawers"></div>
                 <div style="display:flex; gap:8px;">
                     <button class="btn btn-outline" style="flex:1;" onclick="goToStep(2)">⬅ Back</button>
@@ -118,6 +138,7 @@
                 </div>
             </div>
 
+            <!-- DECK SCREEN -->
             <div id="deck-screen">
                 <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px; text-align: center;">Card <span id="current-index">1</span> of <span id="total-cards">5</span></div>
 
@@ -164,14 +185,15 @@
 
     <script>
         const taxonomyData = {{ taxonomy | tojson }};
-        let selectedModernTopics = [{ name: 'Quantum Physics', code: 'cat:quant-ph', parent: 'Physics' }];
-        let selectedClassicTopics = [{ name: 'Quantum Physics', code: 'cat:quant-ph', parent: 'Physics' }];
+        let selectedModernTopics = [];
+        let selectedClassicTopics = [];
         
         let deck = [];
         let cardHistory = [];
         let currentIndex = 0;
 
         function goToStep(stepNum) {
+            document.getElementById('error-banner').style.display = 'none';
             document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
             document.getElementById(`step-${stepNum}`).classList.add('active');
             document.getElementById('deck-screen').style.display = 'none';
@@ -179,11 +201,48 @@
 
         function resetSetup() { goToStep(1); }
 
+        async function searchSuggest(type, val) {
+            const sugBox = document.getElementById(`${type}-sug`);
+            if (!val.trim()) {
+                sugBox.style.display = 'none';
+                return;
+            }
+
+            const res = await fetch(`/api/suggest-topics?q=${encodeURIComponent(val)}`);
+            const data = await res.json();
+            
+            sugBox.innerHTML = data.results.map(r => `
+                <div class="s-item" onclick="addCustomTag('${type}', '${r.name}', '${r.code}', '${r.parent}')">
+                    ➕ Add <b>${r.name}</b> (${r.parent})
+                </div>
+            `).join('');
+            sugBox.style.display = 'block';
+        }
+
+        function addCustomTag(type, name, code, parent) {
+            const targetArray = type === 'modern' ? selectedModernTopics : selectedClassicTopics;
+            if (!targetArray.some(t => t.name === name)) {
+                targetArray.push({ name, code, parent });
+            }
+            document.getElementById(`${type}-search`).value = '';
+            document.getElementById(`${type}-sug`).style.display = 'none';
+            renderDrawers();
+        }
+
         function renderDrawers() {
             const modernContainer = document.getElementById('modern-drawers');
             const classicContainer = document.getElementById('classic-drawers');
             modernContainer.innerHTML = '';
             classicContainer.innerHTML = '';
+
+            // Render Active Tag Chips
+            document.getElementById('modern-active-tags').innerHTML = selectedModernTopics.map((t, i) => `
+                <div class="sub-chip selected-modern" onclick="removeTag('modern', ${i})">📌 ${t.name} ✖</div>
+            `).join('');
+
+            document.getElementById('classic-active-tags').innerHTML = selectedClassicTopics.map((t, i) => `
+                <div class="sub-chip selected-classic" onclick="removeTag('classic', ${i})">📌 ${t.name} ✖</div>
+            `).join('');
 
             Object.keys(taxonomyData).forEach(broad => {
                 const mDiv = document.createElement('div');
@@ -197,20 +256,6 @@
                 cDiv.innerHTML = `<div style="font-size:0.75rem; color:#fef08a; font-weight:700; margin-bottom:4px;">${broad}</div>`;
                 const cChips = document.createElement('div');
                 cChips.className = 'chip-container';
-
-                const mBroadSel = selectedModernTopics.some(t => t.name === broad);
-                const mBroadChip = document.createElement('div');
-                mBroadChip.className = `sub-chip ${mBroadSel ? 'selected-modern' : ''}`;
-                mBroadChip.innerText = `All ${broad}`;
-                mBroadChip.onclick = () => toggleTopic('modern', { name: broad, code: taxonomyData[broad].arxiv_query || broad, parent: broad });
-                mChips.appendChild(mBroadChip);
-
-                const cBroadSel = selectedClassicTopics.some(t => t.name === broad);
-                const cBroadChip = document.createElement('div');
-                cBroadChip.className = `sub-chip ${cBroadSel ? 'selected-classic' : ''}`;
-                cBroadChip.innerText = `All ${broad}`;
-                cBroadChip.onclick = () => toggleTopic('classic', { name: broad, code: taxonomyData[broad].arxiv_query || broad, parent: broad });
-                cChips.appendChild(cBroadChip);
 
                 Object.entries(taxonomyData[broad].subcategories).forEach(([subName, code]) => {
                     const isM = selectedModernTopics.some(t => t.name === subName);
@@ -247,6 +292,12 @@
             renderDrawers();
         }
 
+        function removeTag(type, idx) {
+            const targetArray = type === 'modern' ? selectedModernTopics : selectedClassicTopics;
+            targetArray.splice(idx, 1);
+            renderDrawers();
+        }
+
         function updateRatioLabel(val) {
             const mod = Math.round((1 - val) * 100);
             const clas = Math.round(val * 100);
@@ -255,18 +306,14 @@
 
         async function startReadingDeck() {
             const classicRatio = document.getElementById('classic-slider').value;
-            const modernCustom = document.getElementById('modern-custom-search').value.trim();
-            const classicCustom = document.getElementById('classic-custom-search').value.trim();
+            const errBanner = document.getElementById('error-banner');
+            errBanner.style.display = 'none';
 
-            if (modernCustom) {
-                selectedModernTopics.push({ name: modernCustom, code: modernCustom, parent: 'Custom' });
+            if (selectedModernTopics.length === 0 && selectedClassicTopics.length === 0) {
+                errBanner.innerText = "Please select at least one topic filter before launching!";
+                errBanner.style.display = 'block';
+                return;
             }
-            if (classicCustom) {
-                selectedClassicTopics.push({ name: classicCustom, code: classicCustom, parent: 'Custom' });
-            }
-
-            document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
-            document.getElementById('deck-screen').style.display = 'flex';
 
             const res = await fetch('/api/generate-deck', {
                 method: 'POST',
@@ -279,6 +326,16 @@
             });
 
             const data = await res.json();
+
+            if (data.error) {
+                errBanner.innerText = data.error;
+                errBanner.style.display = 'block';
+                return;
+            }
+
+            document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+            document.getElementById('deck-screen').style.display = 'flex';
+
             deck = data.deck;
             cardHistory = [];
             currentIndex = 0;
@@ -351,10 +408,8 @@
 
             setTimeout(async () => {
                 card.classList.remove('slide-out-left');
-                // Remove passed card from current deck
                 deck.splice(currentIndex, 1);
                 
-                // Replenish deck from API to keep supply full
                 const isClassic = passedPaper.type && passedPaper.type.includes('Classic');
                 const fetchTopics = isClassic ? selectedClassicTopics : selectedModernTopics;
                 const seenTitles = cardHistory.map(p => p.title);
