@@ -6,18 +6,38 @@
     <title>Eric's Food for Thought</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 16px; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; min-height: 100vh; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 16px; max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
         
-        header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid #334155; margin-bottom: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid #334155; margin-bottom: 16px; }
         h1 { font-size: 1.05rem; color: #38bdf8; font-weight: 700; }
         .nav-btns { display: flex; gap: 8px; }
         .btn { background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; cursor: pointer; text-decoration: none; }
         .btn-outline { background: transparent; border: 1px solid #38bdf8; color: #38bdf8; }
         
-        .deck-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; perspective: 1000px; }
-        .deck-status { font-size: 0.8rem; color: #94a3b8; margin-bottom: 12px; text-align: center; }
+        /* Onboarding Screen */
+        #onboarding-screen { display: block; }
+        .section-title { font-size: 0.95rem; font-weight: 600; color: #94a3b8; margin: 16px 0 8px 0; }
+        .grid-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+        .option-chip { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px; font-size: 0.85rem; cursor: pointer; text-align: center; font-weight: 500; }
+        .option-chip.selected { background: #0284c7; border-color: #38bdf8; color: white; }
         
-        .card { background: #1e293b; border-radius: 16px; padding: 20px; width: 100%; border: 1px solid #334155; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); transition: transform 0.3s ease, opacity 0.3s ease; cursor: pointer; position: relative; }
+        .sub-group { margin-bottom: 12px; padding: 10px; background: #1e293b; border-radius: 8px; border: 1px solid #334155; }
+        .sub-title { font-size: 0.8rem; color: #38bdf8; font-weight: 600; margin-bottom: 6px; }
+        .sub-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .sub-chip { background: #0f172a; border: 1px solid #334155; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
+        .sub-chip.selected { background: #059669; border-color: #34d399; color: white; }
+
+        input[type="text"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: white; margin-bottom: 16px; font-size: 0.85rem; }
+        
+        .slider-group { background: #1e293b; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 16px; }
+        .slider-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px; color: #cbd5e1; }
+        input[type="range"] { width: 100%; }
+
+        /* Deck View */
+        #deck-screen { display: none; flex-direction: column; flex: 1; }
+        .warning-banner { background: #78350f; color: #fef08a; padding: 8px 12px; border-radius: 8px; font-size: 0.75rem; margin-bottom: 12px; display: none; }
+        
+        .card { background: #1e293b; border-radius: 16px; padding: 20px; border: 1px solid #334155; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); cursor: pointer; position: relative; transition: transform 0.3s ease, opacity 0.3s ease; }
         .card.slide-out-right { transform: translateX(120%) rotate(10deg); opacity: 0; }
         .card.slide-out-left { transform: translateX(-120%) rotate(-10deg); opacity: 0; }
         .card.slide-next { transform: translateY(-20px); opacity: 0.5; }
@@ -27,10 +47,8 @@
         
         .title { font-size: 1.1rem; font-weight: 700; line-height: 1.4; color: #f8fafc; margin-bottom: 8px; }
         .meta { font-size: 0.8rem; color: #38bdf8; margin-bottom: 12px; }
-        
         .summary { font-size: 0.88rem; color: #cbd5e1; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 16px; }
         .card.expanded .summary { -webkit-line-clamp: unset; overflow: visible; }
-        
         .expand-hint { font-size: 0.75rem; color: #64748b; margin-bottom: 16px; display: block; text-align: center; border-top: 1px dashed #334155; padding-top: 8px; }
         
         .card-controls { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; margin-top: auto; }
@@ -41,7 +59,6 @@
         .btn-pdf { background: #0284c7; color: white; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); z-index: 100; padding: 20px; overflow-y: auto; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .saved-item { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
     </style>
 </head>
@@ -50,14 +67,57 @@
     <header>
         <h1>🧠 Eric's Food for Thought</h1>
         <div class="nav-btns">
+            <button class="btn btn-outline" onclick="showOnboarding()">⚙️ Topics</button>
             <button class="btn btn-outline" onclick="openSavedModal()">📁 Saved (<span id="saved-count">0</span>)</button>
-            <a href="/" class="btn">🔄 Refresh Deck</a>
         </div>
     </header>
 
-    <div class="deck-status">Card <span id="current-index">1</span> of <span id="total-cards">5</span></div>
+    <!-- ONBOARDING / SETUP SCREEN -->
+    <div id="onboarding-screen">
+        <div class="section-title">1. Select Broad Subject Areas:</div>
+        <div class="grid-options" id="broad-grid">
+            {% for cat in categories.keys() %}
+            <div class="option-chip {% if cat == 'Physics' %}selected{% endif %}" onclick="toggleBroadCategory('{{ cat }}', this)">
+                {{ cat }}
+            </div>
+            {% endfor %}
+        </div>
 
-    <main class="deck-container">
+        <div class="section-title">2. Select Specific Subcategories (Optional):</div>
+        <div id="subcategories-container">
+            <!-- Dynamically loaded subcategory chips -->
+        </div>
+
+        <div class="section-title">3. Add Custom Subject Search (Optional):</div>
+        <input type="text" id="custom-topic" placeholder="e.g. Behavioral Economics, Synthetic Biology...">
+
+        <div class="slider-group">
+            <div class="slider-label">
+                <span>Mix Ratio:</span>
+                <span id="ratio-label">70% Modern / 30% Classics</span>
+            </div>
+            <input type="range" id="classic-slider" min="0" max="1" step="0.1" value="0.3" oninput="updateRatioLabel(this.value)">
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-label">
+                <span>Landmark Classic Scope:</span>
+                <span id="scope-label">Broad Category Level</span>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 6px;">
+                <button type="button" class="btn" id="scope-broad-btn" onclick="setScope('broad')">Broad</button>
+                <button type="button" class="btn btn-outline" id="scope-narrow-btn" onclick="setScope('narrow')">Narrow Subcategory</button>
+            </div>
+        </div>
+
+        <button class="btn" style="width: 100%; padding: 12px; font-size: 0.95rem; margin-top: 10px;" onclick="startReadingDeck()">Launch Flashcard Deck 🚀</button>
+    </div>
+
+    <!-- FLASHCARD DECK SCREEN -->
+    <div id="deck-screen">
+        <div id="warning-banner" class="warning-banner"></div>
+        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px; text-align: center;">Card <span id="current-index">1</span> of <span id="total-cards">5</span></div>
+
         <div id="card-element" class="card" onclick="toggleExpand()">
             <span id="card-badge" class="badge">Category</span>
             <div id="card-title" class="title">Loading Paper...</div>
@@ -72,79 +132,140 @@
                 <a id="card-pdf" href="#" target="_blank" class="card-btn btn-pdf">PDF 📄</a>
             </div>
         </div>
-    </main>
+    </div>
 
-    <!-- Saved Library Modal -->
+    <!-- SAVED FOLDER MODAL -->
     <div id="saved-modal" class="modal">
-        <div class="modal-header">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h2 style="color: #38bdf8;">Saved Papers Folder</h2>
             <button class="btn" onclick="closeSavedModal()">Close ✖</button>
         </div>
-        <div id="saved-list">
-            <p style="color: #94a3b8; text-align: center;">No saved papers yet.</p>
-        </div>
+        <div id="saved-list"></div>
     </div>
 
     <script>
-        let deck = {{ papers | tojson }};
+        const categoriesData = {{ categories | tojson }};
+        let selectedCategories = ['Physics'];
+        let selectedSubcategories = [];
+        let landmarkScope = 'broad';
+        let deck = [];
         let currentIndex = 0;
 
-        const replacementBank = [
-            {
-                "title": "Quantum Decoherence and the Appearance of a Classical World",
-                "authors": "W. H. Zurek",
-                "year": "2003",
-                "category": "Classic / Quantum Physics",
-                "summary": "Zurek examines pointer states, environment-induced superselection (einselection), and quantum Darwinism.",
-                "pdf": "https://arxiv.org/abs/quant-ph/0105127",
-                "type": "Seminal Classic"
-            },
-            {
-                "title": "Quantum Mechanics of Many-Body Systems",
-                "authors": "L. D. Landau",
-                "year": "1937",
-                "category": "Classic / Physics",
-                "summary": "Landau outlines the phenomenological theory of phase transitions and quantum fluids.",
-                "pdf": "https://www.google.com/search?q=Landau+Quantum+Mechanics+Many+Body+Systems",
-                "type": "Seminal Classic"
-            },
-            {
-                "title": "A Logical Calculus of Ideas Immanent in Nervous Activity",
-                "authors": "W. S. McCulloch, W. Pitts",
-                "year": "1943",
-                "category": "Classic / Math Biology",
-                "summary": "The foundational mathematical model of artificial neural networks and biological computing.",
-                "pdf": "https://www.cs.cmu.edu/~/neurlab/readings/McCulloch.Pitts.1943.pdf",
-                "type": "Seminal Classic"
-            },
-            {
-                "title": "On the Electrodynamics of Moving Bodies",
-                "authors": "Albert Einstein",
-                "year": "1905",
-                "category": "Classic / Physics",
-                "summary": "Einstein introduces special relativity, reconciling Maxwell's equations with the principle of relativity.",
-                "pdf": "https://www.pro-physik.de/restricted-files/87021",
-                "type": "Seminal Classic"
+        function renderSubcategories() {
+            const container = document.getElementById('subcategories-container');
+            container.innerHTML = '';
+
+            selectedCategories.forEach(cat => {
+                if (categoriesData[cat] && categoriesData[cat].subcategories) {
+                    const group = document.createElement('div');
+                    group.className = 'sub-group';
+                    group.innerHTML = `<div class="sub-title">${cat} Subcategories</div>`;
+                    
+                    const chips = document.createElement('div');
+                    chips.className = 'sub-chips';
+
+                    categoriesData[cat].subcategories.forEach(sub => {
+                        const isSel = selectedSubcategories.includes(sub);
+                        const chip = document.createElement('div');
+                        chip.className = `sub-chip ${isSel ? 'selected' : ''}`;
+                        chip.innerText = sub;
+                        chip.onclick = () => toggleSubcategory(sub, chip);
+                        chips.appendChild(chip);
+                    });
+
+                    group.appendChild(chips);
+                    container.appendChild(group);
+                }
+            });
+        }
+
+        function toggleBroadCategory(cat, el) {
+            if (selectedCategories.includes(cat)) {
+                if (selectedCategories.length > 1) {
+                    selectedCategories = selectedCategories.filter(c => c !== cat);
+                    el.classList.remove('selected');
+                }
+            } else {
+                selectedCategories.push(cat);
+                el.classList.add('selected');
             }
-        ];
+            renderSubcategories();
+        }
+
+        function toggleSubcategory(sub, el) {
+            if (selectedSubcategories.includes(sub)) {
+                selectedSubcategories = selectedSubcategories.filter(s => s !== sub);
+                el.classList.remove('selected');
+            } else {
+                selectedSubcategories.push(sub);
+                el.classList.add('selected');
+            }
+        }
+
+        function updateRatioLabel(val) {
+            const mod = Math.round((1 - val) * 100);
+            const clas = Math.round(val * 100);
+            document.getElementById('ratio-label').innerText = `${mod}% Modern / ${clas}% Classics`;
+        }
+
+        function setScope(scope) {
+            landmarkScope = scope;
+            document.getElementById('scope-broad-btn').className = scope === 'broad' ? 'btn' : 'btn btn-outline';
+            document.getElementById('scope-narrow-btn').className = scope === 'narrow' ? 'btn' : 'btn btn-outline';
+            document.getElementById('scope-label').innerText = scope === 'broad' ? 'Broad Category Level' : 'Narrow Subcategory Level';
+        }
+
+        function showOnboarding() {
+            document.getElementById('onboarding-screen').style.display = 'block';
+            document.getElementById('deck-screen').style.display = 'none';
+        }
+
+        async function startReadingDeck() {
+            const customTopic = document.getElementById('custom-topic').value;
+            const classicRatio = document.getElementById('classic-slider').value;
+
+            document.getElementById('onboarding-screen').style.display = 'none';
+            document.getElementById('deck-screen').style.display = 'flex';
+
+            const res = await fetch('/api/generate-deck', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    categories: selectedCategories,
+                    subcategories: selectedSubcategories,
+                    customTopic: customTopic,
+                    classicRatio: classicRatio,
+                    landmarkScope: landmarkScope
+                })
+            });
+
+            const data = await res.json();
+            deck = data.deck;
+            currentIndex = 0;
+
+            const warningBanner = document.getElementById('warning-banner');
+            if (data.warnings && data.warnings.length > 0) {
+                warningBanner.innerText = data.warnings.join(" ");
+                warningBanner.style.display = 'block';
+            } else {
+                warningBanner.style.display = 'none';
+            }
+
+            renderCard();
+        }
 
         function renderCard() {
-            if (!deck || deck.length === 0) {
-                document.getElementById('card-element').style.display = 'none';
-                document.querySelector('.deck-status').innerHTML = "<b>Deck empty!</b> Hit 'Refresh Deck' to generate a new set.";
-                return;
-            }
+            if (!deck || deck.length === 0) return;
 
             currentIndex = currentIndex % deck.length;
             const paper = deck[currentIndex];
             const card = document.getElementById('card-element');
             
-            card.style.display = 'block';
             card.classList.remove('expanded');
             
             const badge = document.getElementById('card-badge');
             badge.innerText = paper.category;
-            if (paper.type && (paper.type.includes('Classic') || paper.category.includes('Classic'))) {
+            if (paper.type && paper.type.includes('Classic')) {
                 badge.classList.add('classic-badge');
             } else {
                 badge.classList.remove('classic-badge');
@@ -180,33 +301,17 @@
 
         function passCurrentPaper() {
             if (deck.length === 0) return;
-            
             const card = document.getElementById('card-element');
-            card.classList.add('slide-out-left'); // Slide out to the left for pass
-
-            // Grab a new replacement card to swap into this slot
-            let newPaper = replacementBank.pop() || {
-                "title": "Quantum Theory of Radiation",
-                "authors": "P. A. M. Dirac",
-                "year": "1927",
-                "category": "Classic / Physics",
-                "summary": "Dirac initiates quantum field theory by quantizing the electromagnetic field.",
-                "pdf": "https://www.google.com/search?q=Dirac+Quantum+Theory+of+Radiation",
-                "type": "Seminal Classic"
-            };
-
-            deck[currentIndex] = newPaper;
-
+            card.classList.add('slide-out-left');
             setTimeout(() => {
                 card.classList.remove('slide-out-left');
-                currentIndex = (currentIndex + 1) % deck.length; // Advance to next card
+                currentIndex = (currentIndex + 1) % deck.length;
                 renderCard();
             }, 300);
         }
 
         function saveCurrentPaper() {
             if (deck.length === 0) return;
-            
             const paper = deck[currentIndex];
             let saved = JSON.parse(localStorage.getItem('saved_papers') || '[]');
             
@@ -217,19 +322,7 @@
             }
 
             const card = document.getElementById('card-element');
-            card.classList.add('slide-out-right'); // Slide out to the right for save
-
-            let newPaper = replacementBank.pop() || {
-                "title": "Quantum Theory of Radiation",
-                "authors": "P. A. M. Dirac",
-                "year": "1927",
-                "category": "Classic / Physics",
-                "summary": "Dirac initiates quantum field theory by quantizing the electromagnetic field.",
-                "pdf": "https://www.google.com/search?q=Dirac+Quantum+Theory+of+Radiation",
-                "type": "Seminal Classic"
-            };
-
-            deck[currentIndex] = newPaper;
+            card.classList.add('slide-out-right');
 
             setTimeout(() => {
                 card.classList.remove('slide-out-right');
@@ -276,7 +369,7 @@
         }
 
         updateSavedCount();
-        renderCard();
+        renderSubcategories();
     </script>
 </body>
 </html>
