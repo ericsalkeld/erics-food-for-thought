@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eric's Food for Thought</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 16px; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; min-height: 100vh; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid #334155; margin-bottom: 20px; }
+        h1 { font-size: 1.05rem; color: #38bdf8; font-weight: 700; }
+        .nav-btns { display: flex; gap: 8px; }
+        .btn { background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; cursor: pointer; text-decoration: none; }
+        .btn-outline { background: transparent; border: 1px solid #38bdf8; color: #38bdf8; }
+        
+        .deck-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; perspective: 1000px; }
+        .deck-status { font-size: 0.8rem; color: #94a3b8; margin-bottom: 12px; text-align: center; }
+        
+        .card { background: #1e293b; border-radius: 16px; padding: 20px; width: 100%; border: 1px solid #334155; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); transition: transform 0.3s ease, opacity 0.3s ease; cursor: pointer; position: relative; }
+        .card.slide-out-right { transform: translateX(120%) rotate(10deg); opacity: 0; }
+        .card.slide-out-left { transform: translateX(-120%) rotate(-10deg); opacity: 0; }
+        .card.slide-next { transform: translateY(-20px); opacity: 0.5; }
+        
+        .badge { display: inline-block; background: #0369a1; color: #bae6fd; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 6px; margin-bottom: 12px; }
+        .classic-badge { background: #854d0e; color: #fef08a; }
+        
+        .title { font-size: 1.1rem; font-weight: 700; line-height: 1.4; color: #f8fafc; margin-bottom: 8px; }
+        .meta { font-size: 0.8rem; color: #38bdf8; margin-bottom: 12px; }
+        
+        .summary { font-size: 0.88rem; color: #cbd5e1; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 16px; }
+        .card.expanded .summary { -webkit-line-clamp: unset; overflow: visible; }
+        
+        .expand-hint { font-size: 0.75rem; color: #64748b; margin-bottom: 16px; display: block; text-align: center; border-top: 1px dashed #334155; padding-top: 8px; }
+        
+        .card-controls { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; margin-top: auto; }
+        .card-btn { padding: 9px 4px; border-radius: 8px; font-weight: 600; font-size: 0.78rem; border: none; cursor: pointer; text-align: center; text-decoration: none; display: inline-block; }
+        .btn-pass { background: #dc2626; color: white; }
+        .btn-save { background: #059669; color: white; }
+        .btn-skip { background: #334155; color: #f8fafc; }
+        .btn-pdf { background: #0284c7; color: white; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); z-index: 100; padding: 20px; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .saved-item { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🧠 Eric's Food for Thought</h1>
+        <div class="nav-btns">
+            <button class="btn btn-outline" onclick="openSavedModal()">📁 Saved (<span id="saved-count">0</span>)</button>
+            <a href="/" class="btn">🔄 Refresh Deck</a>
+        </div>
+    </header>
+
+    <div class="deck-status">Card <span id="current-index">1</span> of <span id="total-cards">5</span></div>
+
+    <main class="deck-container">
+        <div id="card-element" class="card" onclick="toggleExpand()">
+            <span id="card-badge" class="badge">Category</span>
+            <div id="card-title" class="title">Loading Paper...</div>
+            <div id="card-meta" class="meta">Authors • Year</div>
+            <div id="card-summary" class="summary">Abstract content here...</div>
+            <span id="expand-hint" class="expand-hint">Tap card to expand abstract ↕</span>
+            
+            <div class="card-controls" onclick="event.stopPropagation()">
+                <button class="card-btn btn-pass" onclick="passCurrentPaper()">🚫 Pass</button>
+                <button class="card-btn btn-save" onclick="saveCurrentPaper()">💾 Save</button>
+                <button class="card-btn btn-skip" onclick="nextCard()">Next ➔</button>
+                <a id="card-pdf" href="#" target="_blank" class="card-btn btn-pdf">PDF 📄</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Saved Library Modal -->
+    <div id="saved-modal" class="modal">
+        <div class="modal-header">
+            <h2 style="color: #38bdf8;">Saved Papers Folder</h2>
+            <button class="btn" onclick="closeSavedModal()">Close ✖</button>
+        </div>
+        <div id="saved-list">
+            <p style="color: #94a3b8; text-align: center;">No saved papers yet.</p>
+        </div>
+    </div>
+
+    <script>
+        let deck = {{ papers | tojson }};
+        let currentIndex = 0;
+
+        const replacementBank = [
+            {
+                "title": "Quantum Decoherence and the Appearance of a Classical World",
+                "authors": "W. H. Zurek",
+                "year": "2003",
+                "category": "Classic / Quantum Physics",
+                "summary": "Zurek examines pointer states, environment-induced superselection (einselection), and quantum Darwinism.",
+                "pdf": "https://arxiv.org/abs/quant-ph/0105127",
+                "type": "Seminal Classic"
+            },
+            {
+                "title": "Quantum Mechanics of Many-Body Systems",
+                "authors": "L. D. Landau",
+                "year": "1937",
+                "category": "Classic / Physics",
+                "summary": "Landau outlines the phenomenological theory of phase transitions and quantum fluids.",
+                "pdf": "https://www.google.com/search?q=Landau+Quantum+Mechanics+Many+Body+Systems",
+                "type": "Seminal Classic"
+            },
+            {
+                "title": "A Logical Calculus of Ideas Immanent in Nervous Activity",
+                "authors": "W. S. McCulloch, W. Pitts",
+                "year": "1943",
+                "category": "Classic / Math Biology",
+                "summary": "The foundational mathematical model of artificial neural networks and biological computing.",
+                "pdf": "https://www.cs.cmu.edu/~/neurlab/readings/McCulloch.Pitts.1943.pdf",
+                "type": "Seminal Classic"
+            },
+            {
+                "title": "On the Electrodynamics of Moving Bodies",
+                "authors": "Albert Einstein",
+                "year": "1905",
+                "category": "Classic / Physics",
+                "summary": "Einstein introduces special relativity, reconciling Maxwell's equations with the principle of relativity.",
+                "pdf": "https://www.pro-physik.de/restricted-files/87021",
+                "type": "Seminal Classic"
+            }
+        ];
+
+        function renderCard() {
+            if (!deck || deck.length === 0) {
+                document.getElementById('card-element').style.display = 'none';
+                document.querySelector('.deck-status').innerHTML = "<b>Deck empty!</b> Hit 'Refresh Deck' to generate a new set.";
+                return;
+            }
+
+            currentIndex = currentIndex % deck.length;
+            const paper = deck[currentIndex];
+            const card = document.getElementById('card-element');
+            
+            card.style.display = 'block';
+            card.classList.remove('expanded');
+            
+            const badge = document.getElementById('card-badge');
+            badge.innerText = paper.category;
+            if (paper.type && (paper.type.includes('Classic') || paper.category.includes('Classic'))) {
+                badge.classList.add('classic-badge');
+            } else {
+                badge.classList.remove('classic-badge');
+            }
+
+            document.getElementById('card-title').innerText = paper.title;
+            document.getElementById('card-meta').innerText = paper.authors + " • " + paper.year;
+            document.getElementById('card-summary').innerText = paper.summary;
+            document.getElementById('card-pdf').href = paper.pdf;
+            
+            document.getElementById('current-index').innerText = currentIndex + 1;
+            document.getElementById('total-cards').innerText = deck.length;
+            document.getElementById('expand-hint').innerText = "Tap card to expand abstract ↕";
+        }
+
+        function toggleExpand() {
+            const card = document.getElementById('card-element');
+            card.classList.toggle('expanded');
+            const hint = document.getElementById('expand-hint');
+            hint.innerText = card.classList.contains('expanded') ? "Tap card to collapse ↕" : "Tap card to expand abstract ↕";
+        }
+
+        function nextCard() {
+            if (deck.length === 0) return;
+            const card = document.getElementById('card-element');
+            card.classList.add('slide-next');
+            setTimeout(() => {
+                card.classList.remove('slide-next');
+                currentIndex = (currentIndex + 1) % deck.length;
+                renderCard();
+            }, 250);
+        }
+
+        function passCurrentPaper() {
+            if (deck.length === 0) return;
+            
+            const card = document.getElementById('card-element');
+            card.classList.add('slide-out-left'); // Slide out to the left for pass
+
+            // Grab a new replacement card to swap into this slot
+            let newPaper = replacementBank.pop() || {
+                "title": "Quantum Theory of Radiation",
+                "authors": "P. A. M. Dirac",
+                "year": "1927",
+                "category": "Classic / Physics",
+                "summary": "Dirac initiates quantum field theory by quantizing the electromagnetic field.",
+                "pdf": "https://www.google.com/search?q=Dirac+Quantum+Theory+of+Radiation",
+                "type": "Seminal Classic"
+            };
+
+            deck[currentIndex] = newPaper;
+
+            setTimeout(() => {
+                card.classList.remove('slide-out-left');
+                currentIndex = (currentIndex + 1) % deck.length; // Advance to next card
+                renderCard();
+            }, 300);
+        }
+
+        function saveCurrentPaper() {
+            if (deck.length === 0) return;
+            
+            const paper = deck[currentIndex];
+            let saved = JSON.parse(localStorage.getItem('saved_papers') || '[]');
+            
+            if (!saved.some(p => p.title === paper.title)) {
+                saved.push(paper);
+                localStorage.setItem('saved_papers', JSON.stringify(saved));
+                updateSavedCount();
+            }
+
+            const card = document.getElementById('card-element');
+            card.classList.add('slide-out-right'); // Slide out to the right for save
+
+            let newPaper = replacementBank.pop() || {
+                "title": "Quantum Theory of Radiation",
+                "authors": "P. A. M. Dirac",
+                "year": "1927",
+                "category": "Classic / Physics",
+                "summary": "Dirac initiates quantum field theory by quantizing the electromagnetic field.",
+                "pdf": "https://www.google.com/search?q=Dirac+Quantum+Theory+of+Radiation",
+                "type": "Seminal Classic"
+            };
+
+            deck[currentIndex] = newPaper;
+
+            setTimeout(() => {
+                card.classList.remove('slide-out-right');
+                currentIndex = (currentIndex + 1) % deck.length;
+                renderCard();
+            }, 300);
+        }
+
+        function updateSavedCount() {
+            let saved = JSON.parse(localStorage.getItem('saved_papers') || '[]');
+            document.getElementById('saved-count').innerText = saved.length;
+        }
+
+        function openSavedModal() {
+            let saved = JSON.parse(localStorage.getItem('saved_papers') || '[]');
+            const listEl = document.getElementById('saved-list');
+            
+            if (saved.length === 0) {
+                listEl.innerHTML = '<p style="color: #94a3b8; text-align: center;">No saved papers yet.</p>';
+            } else {
+                listEl.innerHTML = saved.map((p, idx) => `
+                    <div class="saved-item">
+                        <span class="badge ${p.type && p.type.includes('Classic') ? 'classic-badge' : ''}">${p.category}</span>
+                        <div style="font-weight: 600; font-size: 0.95rem; margin: 4px 0;">${p.title}</div>
+                        <div style="font-size: 0.75rem; color: #38bdf8; margin-bottom: 8px;">${p.authors} (${p.year})</div>
+                        <a href="${p.pdf}" target="_blank" class="btn" style="display: inline-block; font-size: 0.75rem;">Open PDF 📄</a>
+                        <button onclick="removeSaved(${idx})" class="btn" style="background: #ef4444; font-size: 0.75rem;">Delete</button>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('saved-modal').style.display = 'block';
+        }
+
+        function removeSaved(idx) {
+            let saved = JSON.parse(localStorage.getItem('saved_papers') || '[]');
+            saved.splice(idx, 1);
+            localStorage.setItem('saved_papers', JSON.stringify(saved));
+            updateSavedCount();
+            openSavedModal();
+        }
+
+        function closeSavedModal() {
+            document.getElementById('saved-modal').style.display = 'none';
+        }
+
+        updateSavedCount();
+        renderCard();
+    </script>
+</body>
+</html>
