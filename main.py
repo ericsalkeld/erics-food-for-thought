@@ -8,66 +8,136 @@ import requests
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# Master dictionary with valid arXiv queries mapped to specific subcategories
-BROAD_CATEGORIES = {
+# Master taxonomy mapping broad fields to comprehensive subcategories and arXiv codes
+BROAD_TAXONOMY = {
     "Physics": {
-        "arxiv_broad": "cat:quant-ph OR cat:physics.flu-dyn OR cat:cond-mat.stat-mech",
         "access_note": None,
         "subcategories": {
             "Quantum Physics": "cat:quant-ph",
             "Fluid Dynamics": "cat:physics.flu-dyn",
             "Statistical Mechanics": "cat:cond-mat.stat-mech",
-            "Condensed Matter": "cat:cond-mat.str-el",
+            "Condensed Matter Physics": "cat:cond-mat.str-el",
+            "High Energy Physics - Theory": "cat:hep-th",
+            "High Energy Physics - Phenomenology": "cat:hep-ph",
+            "Astrophysics": "cat:astro-ph",
+            "General Relativity & Quantum Cosmology": "cat:gr-qc",
+            "Atomic & Molecular Physics": "cat:physics.atom-ph",
+            "Mathematical Physics": "cat:math-ph",
+            "Optics & Photonics": "cat:physics.optics",
+            "Plasma Physics": "cat:physics.plasm-ph",
         },
     },
     "Computer Science": {
-        "arxiv_broad": "cat:cs.LG OR cat:cs.AI OR cat:cs.ET",
         "access_note": None,
         "subcategories": {
             "Machine Learning": "cat:cs.LG",
             "Artificial Intelligence": "cat:cs.AI",
             "Quantum Computing": "cat:quant-ph AND (ti:quantum OR abs:quantum)",
+            "Computer Vision": "cat:cs.CV",
+            "Cryptography & Security": "cat:cs.CR",
             "Theory of Computation": "cat:cs.CC",
+            "Robotics": "cat:cs.RO",
+            "Neural & Evolutionary Computing": "cat:cs.NE",
         },
     },
     "Biology": {
-        "arxiv_broad": "cat:q-bio.NC OR cat:q-bio.BM OR cat:q-bio.MN",
         "access_note": None,
         "subcategories": {
-            "Neuroscience": "cat:q-bio.NC",
-            "Biomolecules": "cat:q-bio.BM",
-            "Genomics": "cat:q-bio.GN",
-            "Mathematical Biology": "cat:q-bio.MN",
+            "Neurons & Cognition": "cat:q-bio.NC",
+            "Biomolecules & Structural Biology": "cat:q-bio.BM",
+            "Genomics & Bioinformatics": "cat:q-bio.GN",
+            "Molecular Networks": "cat:q-bio.MN",
+            "Cell Behavior": "cat:q-bio.CB",
+            "Populations & Evolution": "cat:q-bio.PE",
+            "Quantitative Methods": "cat:q-bio.QM",
         },
     },
-    "Psychology": {
-        "arxiv_broad": None,
+    "Mathematics": {
+        "access_note": None,
+        "subcategories": {
+            "Analysis of PDEs": "cat:math.AP",
+            "Differential Geometry": "cat:math.DG",
+            "Probability & Stochastic Processes": "cat:math.PR",
+            "Algebraic Geometry": "cat:math.AG",
+            "Combinatorics": "cat:math.CO",
+            "Dynamical Systems": "cat:math.DS",
+            "Number Theory": "cat:math.NT",
+        },
+    },
+    "Psychology & Cognitive Science": {
         "access_note": "Psychology preprints are drawn via Semantic Scholar open access.",
         "subcategories": {
-            "Developmental Psychology": "Developmental Psychology",
             "Cognitive Psychology": "Cognitive Psychology",
-            "Neuroscience": "Cognitive Neuroscience",
+            "Developmental Psychology": "Developmental Psychology",
+            "Cognitive Neuroscience": "Cognitive Neuroscience",
             "Social Psychology": "Social Psychology",
-        },
-    },
-    "Chemistry": {
-        "arxiv_broad": None,
-        "access_note": "Chemistry open preprints rely on Semantic Scholar.",
-        "subcategories": {
-            "Physical Chemistry": "Physical Chemistry",
-            "Biochemistry": "Biochemistry",
-            "Materials Science": "Materials Science",
+            "Clinical Psychology": "Clinical Psychology",
+            "Behavioral Neuroscience": "Behavioral Neuroscience",
         },
     },
     "Humanities & Social Sciences": {
-        "arxiv_broad": None,
         "access_note": "Humanities preprints rely on Semantic Scholar open repositories.",
         "subcategories": {
             "Philosophy of Science": "Philosophy of Science",
+            "Econometrics & Quantitative Economics": "cat:econ.EM",
             "Linguistics": "Linguistics",
             "Sociology": "Sociology",
-            "Economics": "cat:econ.EM",
+            "Political Science": "Political Science",
         },
+    },
+}
+
+# Known alias dictionary for dynamic topic search resolution
+TAXONOMY_ALIASES = {
+    "classical field theory": {
+        "display": "High Energy Physics - Theory (Classical Field Theory)",
+        "code": "cat:hep-th OR cat:math-ph",
+        "parent": "Physics",
+    },
+    "quantum optics": {
+        "display": "Quantum Optics & Photonics",
+        "code": "cat:quant-ph AND (abs:optics OR ti:optics)",
+        "parent": "Physics",
+    },
+    "quantum information": {
+        "display": "Quantum Information & Computing",
+        "code": "cat:quant-ph",
+        "parent": "Physics",
+    },
+    "quantum gravity": {
+        "display": "General Relativity & Quantum Cosmology",
+        "code": "cat:gr-qc OR cat:hep-th",
+        "parent": "Physics",
+    },
+    "turbulence": {
+        "display": "Fluid Dynamics (Turbulence)",
+        "code": "cat:physics.flu-dyn AND (abs:turbulence OR ti:turbulence)",
+        "parent": "Physics",
+    },
+    "deep learning": {
+        "display": "Machine Learning (Deep Learning)",
+        "code": "cat:cs.LG",
+        "parent": "Computer Science",
+    },
+    "reinforcement learning": {
+        "display": "Machine Learning (Reinforcement Learning)",
+        "code": "cat:cs.LG AND abs:reinforcement",
+        "parent": "Computer Science",
+    },
+    "neuroscience": {
+        "display": "Neurons & Cognition (Neuroscience)",
+        "code": "cat:q-bio.NC",
+        "parent": "Biology",
+    },
+    "synthetic biology": {
+        "display": "Quantitative Methods (Synthetic Biology)",
+        "code": "cat:q-bio.MN OR cat:q-bio.QM",
+        "parent": "Biology",
+    },
+    "behavioral economics": {
+        "display": "Cognitive & Behavioral Economics",
+        "code": "Behavioral Economics",
+        "parent": "Humanities & Social Sciences",
     },
 }
 
@@ -82,15 +152,6 @@ FALLBACK_CLASSICS = [
         "type": "Seminal Classic",
     },
     {
-        "title": "The Origin of Species",
-        "authors": "Charles Darwin",
-        "year": "1859",
-        "category": "Classic / Biology",
-        "summary": "Darwin introduces the theory of evolution through natural selection.",
-        "pdf": "https://www.gutenberg.org/files/1228/1228-h/1228-h.htm",
-        "type": "Seminal Classic",
-    },
-    {
         "title": "A Mathematical Theory of Communication",
         "authors": "Claude E. Shannon",
         "year": "1948",
@@ -102,49 +163,66 @@ FALLBACK_CLASSICS = [
 ]
 
 
-def build_arxiv_query(selected_categories, selected_subcategories):
-    """If specific subcategories are chosen, strictly restricts modern queries to those tags.
+@app.get("/api/search-topics")
+async def search_topics(q: str):
+    """Searches official taxonomy and alias mapping to return verified topic suggestions."""
+    query = q.lower().strip()
+    matches = []
 
-    Otherwise falls back to broad category tags.
-    """
-    strict_queries = []
+    if not query:
+        return JSONResponse({"results": []})
 
-    # Check if selected subcategories map to arXiv codes
-    if selected_subcategories:
-        for broad_cat in selected_categories:
-            if broad_cat in BROAD_CATEGORIES:
-                sub_dict = BROAD_CATEGORIES[broad_cat]["subcategories"]
-                for sub in selected_subcategories:
-                    if sub in sub_dict and sub_dict[sub].startswith("cat:"):
-                        strict_queries.append(sub_dict[sub])
+    # 1. Search alias dictionary
+    for alias_key, data in TAXONOMY_ALIASES.items():
+        if query in alias_key or alias_key in query:
+            matches.append({
+                "name": data["display"],
+                "code": data["code"],
+                "parent": data["parent"],
+                "match_type": "Direct Topic Match",
+            })
 
-    # If subcategories were selected for arXiv, return strictly filtered query
-    if strict_queries:
-        return " OR ".join(strict_queries)
+    # 2. Search taxonomy subcategories across broad fields
+    for broad, bdata in BROAD_TAXONOMY.items():
+        for sub_name, code in bdata["subcategories"].items():
+            if query in sub_name.lower():
+                matches.append({
+                    "name": sub_name,
+                    "code": code,
+                    "parent": broad,
+                    "match_type": f"Official {broad} Subcategory",
+                })
 
-    # Otherwise default to broad subject area queries
-    broad_queries = [
-        BROAD_CATEGORIES[c]["arxiv_broad"]
-        for c in selected_categories
-        if c in BROAD_CATEGORIES and BROAD_CATEGORIES[c]["arxiv_broad"]
+    # Deduplicate matches
+    seen = set()
+    unique_matches = []
+    for m in matches:
+        if m["name"] not in seen:
+            seen.add(m["name"])
+            unique_matches.append(m)
+
+    return JSONResponse({"results": unique_matches})
+
+
+def fetch_arxiv_papers(selected_topics, limit=3):
+    queries = [
+        t["code"] for t in selected_topics if t.get("code", "").startswith("cat:")
     ]
 
-    return " OR ".join(broad_queries) if broad_queries else None
-
-
-def fetch_arxiv_papers(query, limit=3):
-    if not query:
+    if not queries:
         return []
 
-    papers = []
+    combined_query = " OR ".join(queries)
+
     try:
         client = arxiv.Client(page_size=limit, delay_seconds=2, num_retries=1)
         search = arxiv.Search(
-            query=query,
+            query=combined_query,
             max_results=limit,
             sort_by=arxiv.SortCriterion.SubmittedDate,
             sort_order=arxiv.SortOrder.Descending,
         )
+        papers = []
         for r in list(client.results(search)):
             papers.append({
                 "title": r.title.replace("\n", " "),
@@ -157,26 +235,24 @@ def fetch_arxiv_papers(query, limit=3):
                 "pdf": r.pdf_url,
                 "type": "Fresh Preprint",
             })
+        return papers
     except Exception as e:
         print(f"arXiv error: {e}")
-
-    return papers
+        return []
 
 
 def fetch_semantic_scholar_papers(
-    selected_categories, subcategories, scope="broad", limit=3
+    selected_categories, selected_topics, limit=2
 ):
-    papers = []
-    search_terms = (
-        subcategories
-        if (scope == "narrow" and subcategories)
-        else selected_categories
-    )
+    terms = [
+        t["name"]
+        for t in selected_topics
+        if not t.get("code", "").startswith("cat:")
+    ]
+    if not terms:
+        terms = selected_categories
 
-    if not search_terms:
-        search_terms = ["Psychology", "Physics", "Neuroscience"]
-
-    term = random.choice(search_terms)
+    term = random.choice(terms) if terms else "Physics"
 
     try:
         url = f"https://api.semanticscholar.org/graph/v1/paper/search?query={term}&limit=8&fields=title,abstract,authors,year,citationCount,openAccessPdf"
@@ -190,6 +266,7 @@ def fetch_semantic_scholar_papers(
             else data[:limit]
         )
 
+        papers = []
         for p in sample:
             pdf_url = (
                 p.get("openAccessPdf", {}).get("url")
@@ -207,18 +284,16 @@ def fetch_semantic_scholar_papers(
                 "pdf": pdf_url,
                 "type": "Seminal Classic",
             })
+        return papers
     except Exception as e:
         print(f"Semantic Scholar error: {e}")
-
-    return papers
+        return []
 
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse(
-        request=request,
-        name="index.html",
-        context={"categories": BROAD_CATEGORIES},
+        request=request, name="index.html", context={"taxonomy": BROAD_TAXONOMY}
     )
 
 
@@ -227,26 +302,15 @@ async def generate_deck(request: Request):
     data = await request.json()
 
     selected_categories = data.get("categories", ["Physics"])
-    selected_subs = data.get("subcategories", [])
-    custom_topic = data.get("customTopic", "")
+    selected_topics = data.get("selectedTopics", [])
     classic_ratio = float(data.get("classicRatio", 0.3))
-    landmark_scope = data.get("landmarkScope", "broad")
-
-    if custom_topic:
-        selected_subs.append(custom_topic)
 
     classic_count = round(5 * classic_ratio)
     modern_count = 5 - classic_count
 
-    # Build strict query if specific topics are selected, otherwise broad
-    arxiv_query = build_arxiv_query(selected_categories, selected_subs)
-
-    modern_papers = fetch_arxiv_papers(arxiv_query, limit=modern_count)
+    modern_papers = fetch_arxiv_papers(selected_topics, limit=modern_count)
     classic_papers = fetch_semantic_scholar_papers(
-        selected_categories,
-        selected_subs,
-        scope=landmark_scope,
-        limit=classic_count,
+        selected_categories, selected_topics, limit=classic_count
     )
 
     combined = modern_papers + classic_papers
@@ -261,9 +325,9 @@ async def generate_deck(request: Request):
     random.shuffle(combined)
 
     warnings = [
-        BROAD_CATEGORIES[c]["access_note"]
+        BROAD_TAXONOMY[c]["access_note"]
         for c in selected_categories
-        if c in BROAD_CATEGORIES and BROAD_CATEGORIES[c]["access_note"]
+        if c in BROAD_TAXONOMY and BROAD_TAXONOMY[c]["access_note"]
     ]
 
     return JSONResponse({
