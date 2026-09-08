@@ -12,9 +12,7 @@
         .quote-sidebar { flex: 1; display: none; flex-direction: column; justify-content: space-around; padding: 20px 0; color: #475569; font-style: italic; font-size: 0.85rem; user-select: none; }
         .quote-box { background: rgba(30, 41, 59, 0.4); border-left: 2px solid #334155; padding: 12px; border-radius: 4px; line-height: 1.4; margin-bottom: 12px; }
 
-        @media (min-width: 900px) {
-            .quote-sidebar { display: flex; }
-        }
+        @media (min-width: 900px) { .quote-sidebar { display: flex; } }
 
         .main-app { flex: 0 0 480px; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; }
         
@@ -71,7 +69,6 @@
 <body>
 
     <div class="page-layout">
-        <!-- LEFT QUOTE SIDEBAR -->
         <div class="quote-sidebar">
             <div class="quote-box">"BA-KLA-VA"</div>
             <div class="quote-box">"Your shirt... it's so plain"</div>
@@ -79,7 +76,6 @@
             <div class="quote-box">"I'm a doctor too you know"</div>
         </div>
 
-        <!-- MAIN APPLICATION -->
         <div class="main-app">
             <header>
                 <h1>🧠 Eric's Food for Thought</h1>
@@ -90,7 +86,6 @@
                 </div>
             </header>
 
-            <!-- STEP 1: RATIO SELECTION -->
             <div id="step-1" class="step-container active">
                 <div class="section-title">Step 1: Choose Mix Ratio</div>
                 <div class="slider-group">
@@ -103,7 +98,6 @@
                 <button class="btn" style="width:100%; padding:10px;" onclick="goToStep(2)">Next: Modern Topics ➔</button>
             </div>
 
-            <!-- STEP 2: MODERN TOPICS -->
             <div id="step-2" class="step-container">
                 <div class="section-title">Step 2: Filter Modern Preprints</div>
                 <input type="text" id="modern-custom-search" placeholder="Search custom topic (e.g. Neutrino Physics, Quantum Optics)...">
@@ -114,7 +108,6 @@
                 </div>
             </div>
 
-            <!-- STEP 3: CLASSIC TOPICS -->
             <div id="step-3" class="step-container">
                 <div class="section-title">Step 3: Filter Classic Literature</div>
                 <input type="text" id="classic-custom-search" placeholder="Search custom topic (e.g. Behavioral Psychology, Relativity)...">
@@ -125,7 +118,6 @@
                 </div>
             </div>
 
-            <!-- FLASHCARD DECK SCREEN -->
             <div id="deck-screen">
                 <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px; text-align: center;">Card <span id="current-index">1</span> of <span id="total-cards">5</span></div>
 
@@ -147,7 +139,6 @@
             </div>
         </div>
 
-        <!-- RIGHT QUOTE SIDEBAR -->
         <div class="quote-sidebar">
             <div class="quote-box">"space space space space space space space space space..."</div>
             <div class="quote-box">"If you want to keep my boy's voice high, you gotta keep him dry!"</div>
@@ -155,7 +146,6 @@
         </div>
     </div>
 
-    <!-- HISTORY MODAL -->
     <div id="history-modal" class="modal">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h2 style="color: #38bdf8;">Reading History</h2>
@@ -164,7 +154,6 @@
         <div id="history-list"></div>
     </div>
 
-    <!-- SAVED MODAL -->
     <div id="saved-modal" class="modal">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h2 style="color: #38bdf8;">Saved Papers Folder</h2>
@@ -188,9 +177,7 @@
             document.getElementById('deck-screen').style.display = 'none';
         }
 
-        function resetSetup() {
-            goToStep(1);
-        }
+        function resetSetup() { goToStep(1); }
 
         function renderDrawers() {
             const modernContainer = document.getElementById('modern-drawers');
@@ -199,21 +186,18 @@
             classicContainer.innerHTML = '';
 
             Object.keys(taxonomyData).forEach(broad => {
-                // Modern Drawers
                 const mDiv = document.createElement('div');
                 mDiv.style.marginBottom = "10px";
                 mDiv.innerHTML = `<div style="font-size:0.75rem; color:#38bdf8; font-weight:700; margin-bottom:4px;">${broad}</div>`;
                 const mChips = document.createElement('div');
                 mChips.className = 'chip-container';
 
-                // Classic Drawers
                 const cDiv = document.createElement('div');
                 cDiv.style.marginBottom = "10px";
                 cDiv.innerHTML = `<div style="font-size:0.75rem; color:#fef08a; font-weight:700; margin-bottom:4px;">${broad}</div>`;
                 const cChips = document.createElement('div');
                 cChips.className = 'chip-container';
 
-                // Add Broad Category Chip option
                 const mBroadSel = selectedModernTopics.some(t => t.name === broad);
                 const mBroadChip = document.createElement('div');
                 mBroadChip.className = `sub-chip ${mBroadSel ? 'selected-modern' : ''}`;
@@ -357,19 +341,43 @@
             renderCard();
         }
 
-        function passCurrentPaper() {
+        async function passCurrentPaper() {
             if (deck.length === 0) return;
             
             const card = document.getElementById('card-element');
             card.classList.add('slide-out-left');
 
-            setTimeout(() => {
+            const passedPaper = deck[currentIndex];
+
+            setTimeout(async () => {
                 card.classList.remove('slide-out-left');
-                // PERMANENT REMOVAL: Remove current passed paper from deck array
+                // Remove passed card from current deck
                 deck.splice(currentIndex, 1);
                 
+                // Replenish deck from API to keep supply full
+                const isClassic = passedPaper.type && passedPaper.type.includes('Classic');
+                const fetchTopics = isClassic ? selectedClassicTopics : selectedModernTopics;
+                const seenTitles = cardHistory.map(p => p.title);
+
+                try {
+                    const res = await fetch('/api/replacement-card', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: isClassic ? 'classic' : 'modern',
+                            topics: fetchTopics,
+                            seenTitles: seenTitles
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.paper && !deck.some(p => p.title === data.paper.title)) {
+                        deck.push(data.paper);
+                    }
+                } catch(e) {
+                    console.log("Could not fetch replacement card:", e);
+                }
+
                 if (deck.length === 0) {
-                    alert("You have passed all cards in this deck! Hit Setup to generate a new feed.");
                     resetSetup();
                     return;
                 }
@@ -422,9 +430,7 @@
             document.getElementById('history-modal').style.display = 'block';
         }
 
-        function closeHistoryModal() {
-            document.getElementById('history-modal').style.display = 'none';
-        }
+        function closeHistoryModal() { document.getElementById('history-modal').style.display = 'none'; }
 
         function openSavedModal() {
             let saved = JSON.parse(localStorage.getItem('saved_papers') || '[]');
@@ -454,9 +460,7 @@
             openSavedModal();
         }
 
-        function closeSavedModal() {
-            document.getElementById('saved-modal').style.display = 'none';
-        }
+        function closeSavedModal() { document.getElementById('saved-modal').style.display = 'none'; }
 
         updateSavedCount();
         renderDrawers();
