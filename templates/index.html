@@ -28,13 +28,6 @@
         
         .section-title { font-size: 0.95rem; font-weight: 700; color: #38bdf8; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
         
-        .search-container { position: relative; margin-bottom: 12px; }
-        input[type="text"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.85rem; }
-        
-        .suggestions-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #0f172a; border: 1px solid #0284c7; border-radius: 8px; max-height: 160px; overflow-y: auto; z-index: 50; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .s-item { padding: 8px 12px; font-size: 0.8rem; cursor: pointer; border-bottom: 1px solid #1e293b; }
-        .s-item:hover { background: #0284c7; color: white; }
-
         .chip-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
         .sub-chip { background: #0f172a; border: 1px solid #334155; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; color: #cbd5e1; }
         .sub-chip.selected-modern { background: #0284c7; border-color: #38bdf8; color: white; font-weight: 600; }
@@ -44,6 +37,7 @@
         .slider-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px; color: #cbd5e1; }
         input[type="range"] { width: 100%; }
 
+        .system-banner { background: #1e3a8a; border: 1px solid #3b82f6; color: #dbeafe; padding: 10px; border-radius: 8px; font-size: 0.78rem; margin-bottom: 12px; display: none; }
         .error-banner { background: #7f1d1d; border: 1px solid #ef4444; color: #fecaca; padding: 12px; border-radius: 8px; font-size: 0.85rem; text-align: center; margin-bottom: 16px; display: none; }
 
         #deck-screen { display: none; flex-direction: column; flex: 1; }
@@ -112,11 +106,6 @@
             <!-- STEP 2 -->
             <div id="step-2" class="step-container">
                 <div class="section-title">Step 2: Filter Modern Preprints</div>
-                <div class="search-container">
-                    <input type="text" id="modern-search" placeholder="Type specific search (e.g. Nuclear spin)..." oninput="searchSuggest('modern', this.value)">
-                    <div id="modern-sug" class="suggestions-dropdown"></div>
-                </div>
-                <div id="modern-active-tags" class="chip-container"></div>
                 <div id="modern-drawers"></div>
                 <div style="display:flex; gap:8px;">
                     <button class="btn btn-outline" style="flex:1;" onclick="goToStep(1)">⬅ Back</button>
@@ -127,11 +116,6 @@
             <!-- STEP 3 -->
             <div id="step-3" class="step-container">
                 <div class="section-title">Step 3: Filter Classic Literature</div>
-                <div class="search-container">
-                    <input type="text" id="classic-search" placeholder="Type specific search (e.g. General Psychology)..." oninput="searchSuggest('classic', this.value)">
-                    <div id="classic-sug" class="suggestions-dropdown"></div>
-                </div>
-                <div id="classic-active-tags" class="chip-container"></div>
                 <div id="classic-drawers"></div>
                 <div style="display:flex; gap:8px;">
                     <button class="btn btn-outline" style="flex:1;" onclick="goToStep(2)">⬅ Back</button>
@@ -141,6 +125,7 @@
 
             <!-- DECK SCREEN -->
             <div id="deck-screen">
+                <div id="system-banner" class="system-banner"></div>
                 <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px; text-align: center;">Card <span id="current-index">1</span> of <span id="total-cards">5</span></div>
 
                 <div id="card-element" class="card" onclick="toggleExpand()">
@@ -183,7 +168,7 @@
         let selectedClassicTopics = [];
         
         let deck = [];
-        let actionStack = []; // History stack for undo actions
+        let actionStack = [];
         let currentIndex = 0;
 
         function goToStep(stepNum) {
@@ -195,47 +180,11 @@
 
         function resetSetup() { goToStep(1); }
 
-        async function searchSuggest(type, val) {
-            const sugBox = document.getElementById(`${type}-sug`);
-            if (!val.trim()) {
-                sugBox.style.display = 'none';
-                return;
-            }
-
-            const res = await fetch(`/api/suggest-topics?q=${encodeURIComponent(val)}`);
-            const data = await res.json();
-            
-            sugBox.innerHTML = data.results.map(r => `
-                <div class="s-item" onclick="addCustomTag('${type}', '${r.name}', '${r.code}', '${r.parent}')">
-                    ➕ Add <b>${r.name}</b> (${r.parent})
-                </div>
-            `).join('');
-            sugBox.style.display = 'block';
-        }
-
-        function addCustomTag(type, name, code, parent) {
-            const targetArray = type === 'modern' ? selectedModernTopics : selectedClassicTopics;
-            if (!targetArray.some(t => t.name === name)) {
-                targetArray.push({ name, code, parent });
-            }
-            document.getElementById(`${type}-search`).value = '';
-            document.getElementById(`${type}-sug`).style.display = 'none';
-            renderDrawers();
-        }
-
         function renderDrawers() {
             const modernContainer = document.getElementById('modern-drawers');
             const classicContainer = document.getElementById('classic-drawers');
             modernContainer.innerHTML = '';
             classicContainer.innerHTML = '';
-
-            document.getElementById('modern-active-tags').innerHTML = selectedModernTopics.map((t, i) => `
-                <div class="sub-chip selected-modern" onclick="removeTag('modern', ${i})">📌 ${t.name} ✖</div>
-            `).join('');
-
-            document.getElementById('classic-active-tags').innerHTML = selectedClassicTopics.map((t, i) => `
-                <div class="sub-chip selected-classic" onclick="removeTag('classic', ${i})">📌 ${t.name} ✖</div>
-            `).join('');
 
             Object.keys(taxonomyData).forEach(broad => {
                 const mDiv = document.createElement('div');
@@ -250,7 +199,7 @@
                 const cChips = document.createElement('div');
                 cChips.className = 'chip-container';
 
-                // REINSTATED: General Subject Category Chip (e.g. All Physics)
+                // General Subject Area Chips
                 const isMBroad = selectedModernTopics.some(t => t.name === `All ${broad}`);
                 const mBroadChip = document.createElement('div');
                 mBroadChip.className = `sub-chip ${isMBroad ? 'selected-modern' : ''}`;
@@ -300,12 +249,6 @@
             renderDrawers();
         }
 
-        function removeTag(type, idx) {
-            const targetArray = type === 'modern' ? selectedModernTopics : selectedClassicTopics;
-            targetArray.splice(idx, 1);
-            renderDrawers();
-        }
-
         function updateRatioLabel(val) {
             const mod = Math.round((1 - val) * 100);
             const clas = Math.round(val * 100);
@@ -315,7 +258,10 @@
         async function startReadingDeck() {
             const classicRatio = document.getElementById('classic-slider').value;
             const errBanner = document.getElementById('error-banner');
+            const sysBanner = document.getElementById('system-banner');
+            
             errBanner.style.display = 'none';
+            sysBanner.style.display = 'none';
 
             if (selectedModernTopics.length === 0 && selectedClassicTopics.length === 0) {
                 errBanner.innerText = "Please select at least one topic filter before launching!";
@@ -339,6 +285,11 @@
                 errBanner.innerText = data.error;
                 errBanner.style.display = 'block';
                 return;
+            }
+
+            if (data.messages && data.messages.length > 0) {
+                sysBanner.innerText = data.messages.join(" ");
+                sysBanner.style.display = 'block';
             }
 
             document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
@@ -465,7 +416,6 @@
 
             setTimeout(async () => {
                 card.classList.remove('slide-out-right');
-                // Permanent removal on save + instant replacement
                 deck.splice(currentIndex, 1);
 
                 const isClassic = paper.type && paper.type.includes('Classic');
@@ -516,7 +466,6 @@
                 updateSavedCount();
             }
 
-            // Insert restored paper back into active deck
             deck.splice(lastAction.index, 0, restoredPaper);
             currentIndex = lastAction.index;
             renderCard();
