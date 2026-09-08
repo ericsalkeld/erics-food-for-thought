@@ -19,6 +19,17 @@ BROAD_TAXONOMY = {
             "High Energy Physics": "cat:hep-th",
         },
     },
+    "Mathematics": {
+        "arxiv_query": "cat:math.CO OR cat:math.NT OR cat:math.PR OR cat:math.AP OR cat:math.AG OR cat:math.DG",
+        "subcategories": {
+            "Combinatorics": "cat:math.CO",
+            "Number Theory": "cat:math.NT",
+            "Probability": "cat:math.PR",
+            "Analysis of PDEs": "cat:math.AP",
+            "Algebraic Geometry": "cat:math.AG",
+            "Differential Geometry": "cat:math.DG",
+        },
+    },
     "Computer Science & AI": {
         "arxiv_query": "cat:cs.LG OR cat:cs.AI OR cat:cs.CV OR cat:cs.CC",
         "subcategories": {
