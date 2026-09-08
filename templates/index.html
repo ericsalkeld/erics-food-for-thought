@@ -6,126 +6,144 @@
     <title>Eric's Food for Thought</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 16px; max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 16px; min-height: 100vh; display: flex; justify-content: center; }
+        
+        .page-layout { display: flex; width: 100%; max-width: 1100px; gap: 24px; position: relative; }
+        .quote-sidebar { flex: 1; display: none; flex-direction: column; justify-content: space-around; padding: 20px 0; color: #475569; font-style: italic; font-size: 0.85rem; user-select: none; }
+        .quote-box { background: rgba(30, 41, 59, 0.4); border-left: 2px solid #334155; padding: 12px; border-radius: 4px; line-height: 1.4; margin-bottom: 12px; }
+
+        @media (min-width: 900px) {
+            .quote-sidebar { display: flex; }
+        }
+
+        .main-app { flex: 0 0 480px; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; }
         
         header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid #334155; margin-bottom: 16px; }
         h1 { font-size: 1.05rem; color: #38bdf8; font-weight: 700; }
-        .nav-btns { display: flex; gap: 8px; }
-        .btn { background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; cursor: pointer; text-decoration: none; }
+        .nav-btns { display: flex; gap: 6px; }
+        .btn { background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 0.78rem; cursor: pointer; text-decoration: none; }
         .btn-outline { background: transparent; border: 1px solid #38bdf8; color: #38bdf8; }
         
         #onboarding-screen { display: block; }
-        .section-title { font-size: 0.9rem; font-weight: 600; color: #94a3b8; margin: 16px 0 8px 0; }
+        .section-title { font-size: 0.88rem; font-weight: 700; color: #38bdf8; margin: 16px 0 8px 0; border-bottom: 1px solid #1e293b; padding-bottom: 4px; }
         
-        .grid-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
-        .option-chip { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px; font-size: 0.82rem; cursor: pointer; text-align: center; font-weight: 500; }
-        .option-chip.selected { background: #0284c7; border-color: #38bdf8; color: white; }
-        
-        /* Search Box & Autocomplete Results */
-        .search-box-container { position: relative; margin-bottom: 16px; }
-        input[type="text"] { width: 100%; padding: 11px; border-radius: 8px; border: 1px solid #38bdf8; background: #1e293b; color: white; font-size: 0.88rem; }
-        
-        .search-results-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #1e293b; border: 1px solid #38bdf8; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 50; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .search-item { padding: 10px; border-bottom: 1px solid #334155; cursor: pointer; font-size: 0.82rem; }
-        .search-item:hover { background: #0284c7; }
-        .search-item .parent-tag { font-size: 0.7rem; color: #38bdf8; float: right; }
-
-        /* Broad Category Drawers & Subcategory Chips */
         .drawer { background: #1e293b; border-radius: 10px; border: 1px solid #334155; padding: 12px; margin-bottom: 12px; }
-        .drawer-header { font-size: 0.85rem; font-weight: 700; color: #38bdf8; margin-bottom: 8px; }
         .chip-container { display: flex; flex-wrap: wrap; gap: 6px; }
-        .sub-chip { background: #0f172a; border: 1px solid #334155; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; color: #cbd5e1; }
-        .sub-chip.selected { background: #059669; border-color: #34d399; color: white; font-weight: 600; }
-        .sub-chip.pinned { border-color: #38bdf8; background: #0284c7; color: white; }
+        .sub-chip { background: #0f172a; border: 1px solid #334155; padding: 5px 9px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; color: #cbd5e1; }
+        .sub-chip.selected-modern { background: #0284c7; border-color: #38bdf8; color: white; font-weight: 600; }
+        .sub-chip.selected-classic { background: #854d0e; border-color: #fef08a; color: white; font-weight: 600; }
 
         .slider-group { background: #1e293b; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 16px; }
         .slider-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px; color: #cbd5e1; }
         input[type="range"] { width: 100%; }
 
         #deck-screen { display: none; flex-direction: column; flex: 1; }
-        .warning-banner { background: #78350f; color: #fef08a; padding: 8px 12px; border-radius: 8px; font-size: 0.75rem; margin-bottom: 12px; display: none; }
         
         .card { background: #1e293b; border-radius: 16px; padding: 20px; border: 1px solid #334155; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); cursor: pointer; position: relative; transition: transform 0.3s ease, opacity 0.3s ease; }
-        .card.slide-out-right { transform: translateX(120%) rotate(10deg); opacity: 0; }
         .card.slide-out-left { transform: translateX(-120%) rotate(-10deg); opacity: 0; }
-        .card.slide-next { transform: translateY(-20px); opacity: 0.5; }
+        .card.slide-out-right { transform: translateX(120%) rotate(10deg); opacity: 0; }
+        .card.slide-next { transform: translateY(-15px); opacity: 0.5; }
         
         .badge { display: inline-block; background: #0369a1; color: #bae6fd; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 6px; margin-bottom: 12px; }
         .classic-badge { background: #854d0e; color: #fef08a; }
         
-        .title { font-size: 1.1rem; font-weight: 700; line-height: 1.4; color: #f8fafc; margin-bottom: 8px; }
+        .title { font-size: 1.05rem; font-weight: 700; line-height: 1.4; color: #f8fafc; margin-bottom: 8px; }
         .meta { font-size: 0.8rem; color: #38bdf8; margin-bottom: 12px; }
         .summary { font-size: 0.88rem; color: #cbd5e1; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 16px; }
         .card.expanded .summary { -webkit-line-clamp: unset; overflow: visible; }
         .expand-hint { font-size: 0.75rem; color: #64748b; margin-bottom: 16px; display: block; text-align: center; border-top: 1px dashed #334155; padding-top: 8px; }
         
-        .card-controls { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; margin-top: auto; }
-        .card-btn { padding: 9px 4px; border-radius: 8px; font-weight: 600; font-size: 0.78rem; border: none; cursor: pointer; text-align: center; text-decoration: none; display: inline-block; }
+        .card-controls { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 4px; margin-top: auto; }
+        .card-btn { padding: 9px 2px; border-radius: 8px; font-weight: 600; font-size: 0.72rem; border: none; cursor: pointer; text-align: center; text-decoration: none; display: inline-block; }
         .btn-pass { background: #dc2626; color: white; }
+        .btn-back { background: #475569; color: white; }
         .btn-save { background: #059669; color: white; }
         .btn-skip { background: #334155; color: #f8fafc; }
         .btn-pdf { background: #0284c7; color: white; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); z-index: 100; padding: 20px; overflow-y: auto; }
-        .saved-item { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+        .history-item, .saved-item { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>🧠 Eric's Food for Thought</h1>
-        <div class="nav-btns">
-            <button class="btn btn-outline" onclick="showOnboarding()">⚙️ Topics</button>
-            <button class="btn btn-outline" onclick="openSavedModal()">📁 Saved (<span id="saved-count">0</span>)</button>
-        </div>
-    </header>
-
-    <!-- ONBOARDING & TOPIC SEARCH SCREEN -->
-    <div id="onboarding-screen">
-        <div class="section-title">1. Search & Pin Specific Topics:</div>
-        <div class="search-box-container">
-            <input type="text" id="topic-search-input" placeholder="Search e.g. Quantum Optics, Turbulence, Game Theory..." oninput="handleTopicSearch(this.value)">
-            <div id="search-dropdown" class="search-results-dropdown"></div>
+    <div class="page-layout">
+        <!-- LEFT QUOTE SIDEBAR (Desktop Only) -->
+        <div class="quote-sidebar">
+            <div class="quote-box">"BA-KLA-VA"</div>
+            <div class="quote-box">"Your shirt... it's so plain"</div>
+            <div class="quote-box">"Now Tayne I can get into!"</div>
         </div>
 
-        <div class="section-title">2. Choose Active Broad Fields & Toggle Subcategories:</div>
-        <div id="drawers-container">
-            <!-- Dynamic drawers for active broad categories rendered here -->
-        </div>
+        <!-- MAIN APPLICATION CONTAINER -->
+        <div class="main-app">
+            <header>
+                <h1>🧠 Eric's Food for Thought</h1>
+                <div class="nav-btns">
+                    <button class="btn btn-outline" onclick="showOnboarding()">⚙️ Setup</button>
+                    <button class="btn btn-outline" onclick="openHistoryModal()">📜 History</button>
+                    <button class="btn btn-outline" onclick="openSavedModal()">📁 Saved (<span id="saved-count">0</span>)</button>
+                </div>
+            </header>
 
-        <div class="slider-group">
-            <div class="slider-label">
-                <span>Mix Ratio:</span>
-                <span id="ratio-label">70% Modern / 30% Classics</span>
+            <!-- SETUP & TOPIC SELECTION SCREEN -->
+            <div id="onboarding-screen">
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Deck Ratio:</span>
+                        <span id="ratio-label">70% Modern / 30% Classics</span>
+                    </div>
+                    <input type="range" id="classic-slider" min="0" max="1" step="0.1" value="0.3" oninput="updateRatioLabel(this.value)">
+                </div>
+
+                <div class="section-title">1. Select Topics for Modern Preprints (Blue):</div>
+                <div class="drawer" id="modern-drawers"></div>
+
+                <div class="section-title">2. Select Topics for Classic Literature (Gold):</div>
+                <div class="drawer" id="classic-drawers"></div>
+
+                <button class="btn" style="width: 100%; padding: 12px; font-size: 0.95rem; margin-top: 10px;" onclick="startReadingDeck()">Launch Flashcard Deck 🚀</button>
             </div>
-            <input type="range" id="classic-slider" min="0" max="1" step="0.1" value="0.3" oninput="updateRatioLabel(this.value)">
+
+            <!-- FLASHCARD DECK SCREEN -->
+            <div id="deck-screen">
+                <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px; text-align: center;">Card <span id="current-index">1</span> of <span id="total-cards">5</span></div>
+
+                <div id="card-element" class="card" onclick="toggleExpand()">
+                    <span id="card-badge" class="badge">Category</span>
+                    <div id="card-title" class="title">Loading Paper...</div>
+                    <div id="card-meta" class="meta">Authors • Year</div>
+                    <div id="card-summary" class="summary">Abstract content here...</div>
+                    <span id="expand-hint" class="expand-hint">Tap card to expand abstract ↕</span>
+                    
+                    <div class="card-controls" onclick="event.stopPropagation()">
+                        <button class="card-btn btn-back" onclick="previousCard()">⬅ Back</button>
+                        <button class="card-btn btn-pass" onclick="passCurrentPaper()">🚫 Pass</button>
+                        <button class="card-btn btn-save" onclick="saveCurrentPaper()">💾 Save</button>
+                        <button class="card-btn btn-skip" onclick="nextCard()">Next ➔</button>
+                        <a id="card-pdf" href="#" target="_blank" class="card-btn btn-pdf">PDF 📄</a>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <button class="btn" style="width: 100%; padding: 12px; font-size: 0.95rem; margin-top: 10px;" onclick="startReadingDeck()">Launch Flashcard Deck 🚀</button>
+        <!-- RIGHT QUOTE SIDEBAR (Desktop Only) -->
+        <div class="quote-sidebar">
+            <div class="quote-box">"space space space space space space space space space..."</div>
+            <div class="quote-box">"If you want to keep my boy's voice high, you gotta keep him dry!"</div>
+        </div>
     </div>
 
-    <!-- FLASHCARD DECK SCREEN -->
-    <div id="deck-screen">
-        <div id="warning-banner" class="warning-banner"></div>
-        <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px; text-align: center;">Card <span id="current-index">1</span> of <span id="total-cards">5</span></div>
-
-        <div id="card-element" class="card" onclick="toggleExpand()">
-            <span id="card-badge" class="badge">Category</span>
-            <div id="card-title" class="title">Loading Paper...</div>
-            <div id="card-meta" class="meta">Authors • Year</div>
-            <div id="card-summary" class="summary">Abstract content here...</div>
-            <span id="expand-hint" class="expand-hint">Tap card to expand abstract ↕</span>
-            
-            <div class="card-controls" onclick="event.stopPropagation()">
-                <button class="card-btn btn-pass" onclick="passCurrentPaper()">🚫 Pass</button>
-                <button class="card-btn btn-save" onclick="saveCurrentPaper()">💾 Save</button>
-                <button class="card-btn btn-skip" onclick="nextCard()">Next ➔</button>
-                <a id="card-pdf" href="#" target="_blank" class="card-btn btn-pdf">PDF 📄</a>
-            </div>
+    <!-- HISTORY MODAL -->
+    <div id="history-modal" class="modal">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="color: #38bdf8;">Reading History</h2>
+            <button class="btn" onclick="closeHistoryModal()">Close ✖</button>
         </div>
+        <div id="history-list"></div>
     </div>
 
-    <!-- SAVED FOLDER MODAL -->
+    <!-- SAVED MODAL -->
     <div id="saved-modal" class="modal">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h2 style="color: #38bdf8;">Saved Papers Folder</h2>
@@ -136,94 +154,72 @@
 
     <script>
         const taxonomyData = {{ taxonomy | tojson }};
-        let activeCategories = ['Physics', 'Computer Science'];
-        let selectedTopics = [
-            { name: 'Quantum Physics', code: 'cat:quant-ph', parent: 'Physics' },
-            { name: 'Fluid Dynamics', code: 'cat:physics.flu-dyn', parent: 'Physics' }
+        let selectedModernTopics = [
+            { name: 'Quantum Physics', code: 'cat:quant-ph', parent: 'Physics' }
         ];
+        let selectedClassicTopics = [
+            { name: 'Quantum Physics', code: 'cat:quant-ph', parent: 'Physics' }
+        ];
+        
         let deck = [];
+        let cardHistory = [];
         let currentIndex = 0;
 
         function renderDrawers() {
-            const container = document.getElementById('drawers-container');
-            container.innerHTML = '';
+            const modernContainer = document.getElementById('modern-drawers');
+            const classicContainer = document.getElementById('classic-drawers');
+            modernContainer.innerHTML = '';
+            classicContainer.innerHTML = '';
 
             Object.keys(taxonomyData).forEach(broad => {
-                const drawer = document.createElement('div');
-                drawer.className = 'drawer';
+                // Modern Drawers
+                const mDiv = document.createElement('div');
+                mDiv.style.marginBottom = "10px";
+                mDiv.innerHTML = `<div style="font-size:0.75rem; color:#38bdf8; font-weight:700; margin-bottom:4px;">${broad}</div>`;
+                const mChips = document.createElement('div');
+                mChips.className = 'chip-container';
 
-                const header = document.createElement('div');
-                header.className = 'drawer-header';
-                header.innerText = `${broad} Subcategories`;
+                // Classic Drawers
+                const cDiv = document.createElement('div');
+                cDiv.style.marginBottom = "10px";
+                cDiv.innerHTML = `<div style="font-size:0.75rem; color:#fef08a; font-weight:700; margin-bottom:4px;">${broad}</div>`;
+                const cChips = document.createElement('div');
+                cChips.className = 'chip-container';
 
-                const chipsDiv = document.createElement('div');
-                chipsDiv.className = 'chip-container';
+                Object.entries(taxonomyData[broad].subcategories).forEach(([subName, code]) => {
+                    // Modern Chip
+                    const isM = selectedModernTopics.some(t => t.name === subName);
+                    const mChip = document.createElement('div');
+                    mChip.className = `sub-chip ${isM ? 'selected-modern' : ''}`;
+                    mChip.innerText = subName;
+                    mChip.onclick = () => toggleTopic('modern', { name: subName, code, parent: broad });
+                    mChips.appendChild(mChip);
 
-                // Render standard subcategories for this broad field
-                Object.entries(taxonomyData[broad].subcategories).forEach(([name, code]) => {
-                    const isSel = selectedTopics.some(t => t.name === name);
-                    const chip = document.createElement('div');
-                    chip.className = `sub-chip ${isSel ? 'selected' : ''}`;
-                    chip.innerText = name;
-                    chip.onclick = () => toggleTopic({ name, code, parent: broad });
-                    chipsDiv.appendChild(chip);
+                    // Classic Chip
+                    const isC = selectedClassicTopics.some(t => t.name === subName);
+                    const cChip = document.createElement('div');
+                    cChip.className = `sub-chip ${isC ? 'selected-classic' : ''}`;
+                    cChip.innerText = subName;
+                    cChip.onclick = () => toggleTopic('classic', { name: subName, code, parent: broad });
+                    cChips.appendChild(cChip);
                 });
 
-                // Render pinned custom topics for this broad field
-                selectedTopics.filter(t => t.parent === broad && !taxonomyData[broad].subcategories[t.name]).forEach(customTopic => {
-                    const chip = document.createElement('div');
-                    chip.className = 'sub-chip selected pinned';
-                    chip.innerText = `📌 ${customTopic.name}`;
-                    chip.onclick = () => toggleTopic(customTopic);
-                    chipsDiv.appendChild(chip);
-                });
+                mDiv.appendChild(mChips);
+                modernContainer.appendChild(mDiv);
 
-                drawer.appendChild(header);
-                drawer.appendChild(chipsDiv);
-                container.appendChild(drawer);
+                cDiv.appendChild(cChips);
+                classicContainer.appendChild(cDiv);
             });
         }
 
-        function toggleTopic(topicObj) {
-            const idx = selectedTopics.findIndex(t => t.name === topicObj.name);
+        function toggleTopic(type, topicObj) {
+            const targetArray = type === 'modern' ? selectedModernTopics : selectedClassicTopics;
+            const idx = targetArray.findIndex(t => t.name === topicObj.name);
             if (idx > -1) {
-                selectedTopics.splice(idx, 1);
+                targetArray.splice(idx, 1);
             } else {
-                selectedTopics.push(topicObj);
+                targetArray.push(topicObj);
             }
-            renderDrawers();
-        }
-
-        async function handleTopicSearch(query) {
-            const dropdown = document.getElementById('search-dropdown');
-            if (!query.trim()) {
-                dropdown.style.display = 'none';
-                return;
-            }
-
-            const res = await fetch(`/api/search-topics?q=${encodeURIComponent(query)}`);
-            const data = await res.json();
-
-            if (data.results.length === 0) {
-                dropdown.innerHTML = '<div class="search-item" style="color: #94a3b8;">No matching taxonomy found. Try another search.</div>';
-            } else {
-                dropdown.innerHTML = data.results.map(item => `
-                    <div class="search-item" onclick="pinTopic('${item.name}', '${item.code}', '${item.parent}')">
-                        <b>${item.name}</b>
-                        <span class="parent-tag">${item.parent}</span>
-                    </div>
-                `).join('');
-            }
-            dropdown.style.display = 'block';
-        }
-
-        function pinTopic(name, code, parent) {
-            const topicObj = { name, code, parent };
-            if (!selectedTopics.some(t => t.name === name)) {
-                selectedTopics.push(topicObj);
-            }
-            document.getElementById('topic-search-input').value = '';
-            document.getElementById('search-dropdown').style.display = 'none';
             renderDrawers();
         }
 
@@ -239,42 +235,33 @@
         }
 
         async function startReadingDeck() {
-    const classicRatio = document.getElementById('classic-slider').value;
+            const classicRatio = document.getElementById('classic-slider').value;
 
-    document.getElementById('onboarding-screen').style.display = 'none';
-    document.getElementById('deck-screen').style.display = 'flex';
+            document.getElementById('onboarding-screen').style.display = 'none';
+            document.getElementById('deck-screen').style.display = 'flex';
 
-    const res = await fetch('/api/generate-deck', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            selectedTopics: selectedTopics,
-            classicRatio: classicRatio
-        })
-    });
+            const res = await fetch('/api/generate-deck', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    modernTopics: selectedModernTopics,
+                    classicTopics: selectedClassicTopics,
+                    classicRatio: classicRatio
+                })
+            });
 
-    const data = await res.json();
-    deck = data.deck;
-    currentIndex = 0;
-
-    const warningBanner = document.getElementById('warning-banner');
-    if (data.no_classics_found) {
-        warningBanner.innerText = "⚠️ No open-access classic papers found for this specific topic. Showing available literature.";
-        warningBanner.style.display = 'block';
-    } else {
-        warningBanner.style.display = 'none';
-    }
-
-    renderCard();
-}
+            const data = await res.json();
+            deck = data.deck;
+            cardHistory = [];
+            currentIndex = 0;
+            renderCard();
+        }
 
         function renderCard() {
             if (!deck || deck.length === 0) return;
 
-            currentIndex = currentIndex % deck.length;
             const paper = deck[currentIndex];
             const card = document.getElementById('card-element');
-            
             card.classList.remove('expanded');
             
             const badge = document.getElementById('card-badge');
@@ -292,7 +279,11 @@
             
             document.getElementById('current-index').innerText = currentIndex + 1;
             document.getElementById('total-cards').innerText = deck.length;
-            document.getElementById('expand-hint').innerText = "Tap card to expand abstract ↕";
+
+            // Track reading history
+            if (!cardHistory.some(p => p.title === paper.title)) {
+                cardHistory.push(paper);
+            }
         }
 
         function toggleExpand() {
@@ -303,7 +294,7 @@
         }
 
         function nextCard() {
-            if (deck.length === 0) return;
+            if (deck.length <= 1) return;
             const card = document.getElementById('card-element');
             card.classList.add('slide-next');
             setTimeout(() => {
@@ -313,13 +304,28 @@
             }, 250);
         }
 
+        function previousCard() {
+            if (deck.length <= 1) return;
+            currentIndex = (currentIndex - 1 + deck.length) % deck.length;
+            renderCard();
+        }
+
         function passCurrentPaper() {
             if (deck.length === 0) return;
+            
             const card = document.getElementById('card-element');
             card.classList.add('slide-out-left');
+
             setTimeout(() => {
                 card.classList.remove('slide-out-left');
-                currentIndex = (currentIndex + 1) % deck.length;
+                // Move current passed card to the BOTTOM of the pile array
+                const passedPaper = deck.splice(currentIndex, 1)[0];
+                deck.push(passedPaper);
+                
+                // Keep index valid
+                if (currentIndex >= deck.length) {
+                    currentIndex = 0;
+                }
                 renderCard();
             }, 300);
         }
@@ -350,6 +356,27 @@
             document.getElementById('saved-count').innerText = saved.length;
         }
 
+        function openHistoryModal() {
+            const listEl = document.getElementById('history-list');
+            if (cardHistory.length === 0) {
+                listEl.innerHTML = '<p style="color: #94a3b8; text-align: center;">No cards viewed yet.</p>';
+            } else {
+                listEl.innerHTML = cardHistory.map(p => `
+                    <div class="history-item">
+                        <span class="badge ${p.type && p.type.includes('Classic') ? 'classic-badge' : ''}">${p.category}</span>
+                        <div style="font-weight: 600; font-size: 0.9rem; margin: 4px 0;">${p.title}</div>
+                        <div style="font-size: 0.75rem; color: #38bdf8; margin-bottom: 6px;">${p.authors} (${p.year})</div>
+                        <a href="${p.pdf}" target="_blank" class="btn" style="display: inline-block; font-size: 0.72rem;">View PDF 📄</a>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('history-modal').style.display = 'block';
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('history-modal').style.display = 'none';
+        }
+
         function openSavedModal() {
             let saved = JSON.parse(localStorage.getItem('saved_papers') || '[]');
             const listEl = document.getElementById('saved-list');
@@ -360,10 +387,10 @@
                 listEl.innerHTML = saved.map((p, idx) => `
                     <div class="saved-item">
                         <span class="badge ${p.type && p.type.includes('Classic') ? 'classic-badge' : ''}">${p.category}</span>
-                        <div style="font-weight: 600; font-size: 0.95rem; margin: 4px 0;">${p.title}</div>
-                        <div style="font-size: 0.75rem; color: #38bdf8; margin-bottom: 8px;">${p.authors} (${p.year})</div>
-                        <a href="${p.pdf}" target="_blank" class="btn" style="display: inline-block; font-size: 0.75rem;">Open PDF 📄</a>
-                        <button onclick="removeSaved(${idx})" class="btn" style="background: #ef4444; font-size: 0.75rem;">Delete</button>
+                        <div style="font-weight: 600; font-size: 0.9rem; margin: 4px 0;">${p.title}</div>
+                        <div style="font-size: 0.75rem; color: #38bdf8; margin-bottom: 6px;">${p.authors} (${p.year})</div>
+                        <a href="${p.pdf}" target="_blank" class="btn" style="display: inline-block; font-size: 0.72rem;">Open PDF 📄</a>
+                        <button onclick="removeSaved(${idx})" class="btn" style="background: #ef4444; font-size: 0.72rem;">Delete</button>
                     </div>
                 `).join('');
             }
