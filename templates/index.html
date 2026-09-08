@@ -28,6 +28,9 @@
         
         .section-title { font-size: 0.95rem; font-weight: 700; color: #38bdf8; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
         
+        .search-container { position: relative; margin-bottom: 12px; }
+        input[type="text"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.85rem; }
+
         .chip-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
         .sub-chip { background: #0f172a; border: 1px solid #334155; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; color: #cbd5e1; }
         .sub-chip.selected-modern { background: #0284c7; border-color: #38bdf8; color: white; font-weight: 600; }
@@ -36,9 +39,6 @@
         .slider-group { background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 16px; }
         .slider-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px; color: #cbd5e1; }
         input[type="range"] { width: 100%; }
-
-        .system-banner { background: #1e3a8a; border: 1px solid #3b82f6; color: #dbeafe; padding: 10px; border-radius: 8px; font-size: 0.78rem; margin-bottom: 12px; display: none; }
-        .error-banner { background: #7f1d1d; border: 1px solid #ef4444; color: #fecaca; padding: 12px; border-radius: 8px; font-size: 0.85rem; text-align: center; margin-bottom: 16px; display: none; }
 
         #deck-screen { display: none; flex-direction: column; flex: 1; }
         
@@ -88,8 +88,6 @@
                 </div>
             </header>
 
-            <div id="error-banner" class="error-banner"></div>
-
             <!-- STEP 1 -->
             <div id="step-1" class="step-container active">
                 <div class="section-title">Step 1: Choose Mix Ratio</div>
@@ -106,6 +104,10 @@
             <!-- STEP 2 -->
             <div id="step-2" class="step-container">
                 <div class="section-title">Step 2: Filter Modern Preprints</div>
+                <div class="search-container">
+                    <input type="text" id="modern-search" placeholder="Type custom topic & press Enter..." onkeydown="handleSearchKey('modern', event)">
+                </div>
+                <div id="modern-active-tags" class="chip-container"></div>
                 <div id="modern-drawers"></div>
                 <div style="display:flex; gap:8px;">
                     <button class="btn btn-outline" style="flex:1;" onclick="goToStep(1)">⬅ Back</button>
@@ -116,6 +118,10 @@
             <!-- STEP 3 -->
             <div id="step-3" class="step-container">
                 <div class="section-title">Step 3: Filter Classic Literature</div>
+                <div class="search-container">
+                    <input type="text" id="classic-search" placeholder="Type custom topic & press Enter..." onkeydown="handleSearchKey('classic', event)">
+                </div>
+                <div id="classic-active-tags" class="chip-container"></div>
                 <div id="classic-drawers"></div>
                 <div style="display:flex; gap:8px;">
                     <button class="btn btn-outline" style="flex:1;" onclick="goToStep(2)">⬅ Back</button>
@@ -125,7 +131,6 @@
 
             <!-- DECK SCREEN -->
             <div id="deck-screen">
-                <div id="system-banner" class="system-banner"></div>
                 <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px; text-align: center;">Card <span id="current-index">1</span> of <span id="total-cards">5</span></div>
 
                 <div id="card-element" class="card" onclick="toggleExpand()">
@@ -172,7 +177,6 @@
         let currentIndex = 0;
 
         function goToStep(stepNum) {
-            document.getElementById('error-banner').style.display = 'none';
             document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
             document.getElementById(`step-${stepNum}`).classList.add('active');
             document.getElementById('deck-screen').style.display = 'none';
@@ -180,11 +184,32 @@
 
         function resetSetup() { goToStep(1); }
 
+        function handleSearchKey(type, event) {
+            if (event.key === 'Enter') {
+                const input = document.getElementById(`${type}-search`);
+                const val = input.value.trim();
+                if (val) {
+                    const targetArray = type === 'modern' ? selectedModernTopics : selectedClassicTopics;
+                    targetArray.push({ name: val, code: val, parent: 'Custom Search' });
+                    input.value = '';
+                    renderDrawers();
+                }
+            }
+        }
+
         function renderDrawers() {
             const modernContainer = document.getElementById('modern-drawers');
             const classicContainer = document.getElementById('classic-drawers');
             modernContainer.innerHTML = '';
             classicContainer.innerHTML = '';
+
+            document.getElementById('modern-active-tags').innerHTML = selectedModernTopics.map((t, i) => `
+                <div class="sub-chip selected-modern" onclick="removeTag('modern', ${i})">📌 ${t.name} ✖</div>
+            `).join('');
+
+            document.getElementById('classic-active-tags').innerHTML = selectedClassicTopics.map((t, i) => `
+                <div class="sub-chip selected-classic" onclick="removeTag('classic', ${i})">📌 ${t.name} ✖</div>
+            `).join('');
 
             Object.keys(taxonomyData).forEach(broad => {
                 const mDiv = document.createElement('div');
@@ -199,7 +224,7 @@
                 const cChips = document.createElement('div');
                 cChips.className = 'chip-container';
 
-                // General Subject Area Chips
+                // REINSTATED: General Subject Area Chips (e.g. All Physics)
                 const isMBroad = selectedModernTopics.some(t => t.name === `All ${broad}`);
                 const mBroadChip = document.createElement('div');
                 mBroadChip.className = `sub-chip ${isMBroad ? 'selected-modern' : ''}`;
@@ -249,6 +274,12 @@
             renderDrawers();
         }
 
+        function removeTag(type, idx) {
+            const targetArray = type === 'modern' ? selectedModernTopics : selectedClassicTopics;
+            targetArray.splice(idx, 1);
+            renderDrawers();
+        }
+
         function updateRatioLabel(val) {
             const mod = Math.round((1 - val) * 100);
             const clas = Math.round(val * 100);
@@ -257,15 +288,9 @@
 
         async function startReadingDeck() {
             const classicRatio = document.getElementById('classic-slider').value;
-            const errBanner = document.getElementById('error-banner');
-            const sysBanner = document.getElementById('system-banner');
-            
-            errBanner.style.display = 'none';
-            sysBanner.style.display = 'none';
 
             if (selectedModernTopics.length === 0 && selectedClassicTopics.length === 0) {
-                errBanner.innerText = "Please select at least one topic filter before launching!";
-                errBanner.style.display = 'block';
+                alert("Please select at least one topic filter!");
                 return;
             }
 
@@ -280,17 +305,6 @@
             });
 
             const data = await res.json();
-
-            if (data.error) {
-                errBanner.innerText = data.error;
-                errBanner.style.display = 'block';
-                return;
-            }
-
-            if (data.messages && data.messages.length > 0) {
-                sysBanner.innerText = data.messages.join(" ");
-                sysBanner.style.display = 'block';
-            }
 
             document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
             document.getElementById('deck-screen').style.display = 'flex';
