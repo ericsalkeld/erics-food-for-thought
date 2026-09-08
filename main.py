@@ -10,14 +10,13 @@ templates = Jinja2Templates(directory="templates")
 
 BROAD_TAXONOMY = {
     "Physics": {
-        "arxiv_query": "cat:quant-ph OR cat:physics.flu-dyn OR cat:cond-mat.stat-mech OR cat:hep-th OR cat:nucl-th OR cat:physics.chem-ph",
+        "arxiv_query": "cat:quant-ph OR cat:physics.flu-dyn OR cat:cond-mat.stat-mech OR cat:hep-th OR cat:nucl-th OR cat:gr-qc",
         "subcategories": {
             "Quantum Physics": "cat:quant-ph",
             "Nuclear & Atomic Physics": "cat:nucl-th OR cat:physics.atom-ph",
             "Fluid Dynamics": "cat:physics.flu-dyn",
             "Statistical Mechanics": "cat:cond-mat.stat-mech",
             "High Energy Physics": "cat:hep-th",
-            "Chemical Physics": "cat:physics.chem-ph",
         },
     },
     "Computer Science & AI": {
@@ -30,13 +29,12 @@ BROAD_TAXONOMY = {
         },
     },
     "Psychology & Cognitive Science": {
-        "arxiv_query": "cat:q-bio.NC",
+        "arxiv_query": None,
         "subcategories": {
             "General Psychology": "Psychology",
             "Social Psychology": "Social Psychology",
             "Cognitive Psychology": "Cognitive Psychology",
             "Developmental Psychology": "Developmental Psychology",
-            "Cognitive Neuroscience": "cat:q-bio.NC",
         },
     },
     "Biology & Medicine": {
@@ -49,14 +47,89 @@ BROAD_TAXONOMY = {
     },
 }
 
-# Auto-suggest dictionary for custom search terms
+# Curated landmark database covering true classics (pre-2005)
+HIGH_IMPACT_CLASSICS = [
+    {
+        "id": "c1",
+        "title": "Simulating Physics with Computers",
+        "authors": "Richard P. Feynman",
+        "year": "1982",
+        "category": "Classic / Physics",
+        "summary": "Feynman proposes using quantum mechanical systems to simulate physical phenomena.",
+        "pdf": "https://dspace.mit.edu/bitstream/handle/1721.1/11724/SimulatingPhysicsWithComputers.pdf",
+        "type": "Seminal Classic",
+    },
+    {
+        "id": "c2",
+        "title": "On the Electrodynamics of Moving Bodies",
+        "authors": "Albert Einstein",
+        "year": "1905",
+        "category": "Classic / Physics",
+        "summary": "Einstein introduces special relativity, reconciling Maxwell's equations with relativity principles.",
+        "pdf": "https://www.pro-physik.de/restricted-files/87021",
+        "type": "Seminal Classic",
+    },
+    {
+        "id": "c3",
+        "title": "Computing Machinery and Intelligence",
+        "authors": "Alan M. Turing",
+        "year": "1950",
+        "category": "Classic / AI & Philosophy",
+        "summary": "Turing introduces the imitation game (Turing Test) and asks: Can machines think?",
+        "pdf": "https://www.csee.umbc.edu/courses/471/papers/turing.pdf",
+        "type": "Seminal Classic",
+    },
+    {
+        "id": "c4",
+        "title": "A Mathematical Theory of Communication",
+        "authors": "Claude E. Shannon",
+        "year": "1948",
+        "category": "Classic / Information Theory",
+        "summary": "Shannon lays the foundation for information theory and digital communication.",
+        "pdf": "https://math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf",
+        "type": "Seminal Classic",
+    },
+    {
+        "id": "c5",
+        "title": "Principles of Topological Psychology",
+        "authors": "Kurt Lewin",
+        "year": "1936",
+        "category": "Classic / Psychology",
+        "summary": "Lewin applies mathematical topology concepts to human behavior and psychological field theory.",
+        "pdf": "https://www.google.com/search?q=Kurt+Lewin+Principles+of+Topological+Psychology",
+        "type": "Seminal Classic",
+    },
+    {
+        "id": "c6",
+        "title": "The Magical Number Seven, Plus or Minus Two",
+        "authors": "George A. Miller",
+        "year": "1956",
+        "category": "Classic / Cognitive Psychology",
+        "summary": "Miller proposes that human short-term memory capacity is limited to roughly seven chunks.",
+        "pdf": "https://psychclassics.yorku.ca/Miller/",
+        "type": "Seminal Classic",
+    },
+]
+
 SEARCH_SUGGESTIONS = {
-    "nuclear spin": {"code": "cat:quant-ph OR cat:physics.chem-ph OR abs:\"nuclear spin\"", "parent": "Physics"},
-    "quantum optics": {"code": "cat:quant-ph AND abs:optics", "parent": "Physics"},
-    "particle physics": {"code": "cat:hep-ph OR cat:hep-ex", "parent": "Physics"},
-    "social psychology": {"code": "Social Psychology", "parent": "Psychology & Cognitive Science"},
-    "general psychology": {"code": "Psychology", "parent": "Psychology & Cognitive Science"},
+    "nuclear spin": {
+        "code": "cat:quant-ph OR cat:physics.chem-ph OR abs:\"nuclear spin\"",
+        "parent": "Physics",
+    },
+    "quantum optics": {
+        "code": "cat:quant-ph AND abs:optics",
+        "parent": "Physics",
+    },
+    "social psychology": {
+        "code": "Social Psychology",
+        "parent": "Psychology & Cognitive Science",
+    },
+    "general psychology": {
+        "code": "Psychology",
+        "parent": "Psychology & Cognitive Science",
+    },
 }
+
 
 @app.get("/api/suggest-topics")
 async def suggest_topics(q: str):
@@ -64,54 +137,69 @@ async def suggest_topics(q: str):
     results = []
     for k, v in SEARCH_SUGGESTIONS.items():
         if query in k:
-            results.append({"name": k.title(), "code": v["code"], "parent": v["parent"]})
-    
+            results.append(
+                {"name": k.title(), "code": v["code"], "parent": v["parent"]}
+            )
+
     if not results and query:
         results.append({"name": q.title(), "code": q, "parent": "Custom"})
-        
+
     return JSONResponse({"results": results})
 
 
-def fetch_arxiv_papers(topics, limit=5):
-    """Fetches papers from arXiv with equal weight distribution per topic."""
+def fetch_arxiv_domain(topics, limit=5, is_classic=False):
+    """Fetches STEM research directly via arXiv API."""
     if not topics or limit <= 0:
         return []
 
     papers = []
     seen_titles = set()
-    per_topic_limit = max(1, limit // len(topics))
+    per_topic = max(1, limit // len(topics))
 
     for t in topics:
         code = t.get("code", "")
-        # Skip pure humanities/psychology strings on arXiv unless they have cat:
         query_str = code if "cat:" in code else f"abs:\"{code}\""
-        
+
         try:
-            client = arxiv.Client(page_size=10, delay_seconds=1, num_retries=1)
+            client = arxiv.Client(page_size=12, delay_seconds=1, num_retries=1)
+            sort_order = (
+                arxiv.SortCriterion.Relevance
+                if is_classic
+                else arxiv.SortCriterion.SubmittedDate
+            )
+
             search = arxiv.Search(
                 query=query_str,
-                max_results=10,
-                sort_by=arxiv.SortCriterion.SubmittedDate,
+                max_results=12,
+                sort_by=sort_order,
                 sort_order=arxiv.SortOrder.Descending,
             )
+
             count = 0
             for r in list(client.results(search)):
                 t_clean = r.title.replace("\n", " ").strip()
+                pub_year = int(r.published.strftime("%Y"))
+
+                # Strict classic filter for arXiv items (must be pre-2005 or high relevance)
+                if is_classic and pub_year > 2005:
+                    continue
+
                 if t_clean not in seen_titles:
                     seen_titles.add(t_clean)
                     papers.append({
                         "id": f"arxiv_{r.entry_id.split('/')[-1]}",
                         "title": t_clean,
-                        "authors": ", ".join([a.name for a in r.authors[:2]]) + (" et al." if len(r.authors) > 2 else ""),
-                        "year": r.published.strftime("%Y"),
+                        "authors": ", ".join([a.name for a in r.authors[:2]])
+                        + (" et al." if len(r.authors) > 2 else ""),
+                        "year": str(pub_year),
                         "category": t["name"],
                         "summary": r.summary.replace("\n", " "),
                         "url": r.entry_id,
                         "pdf": r.pdf_url,
-                        "type": "Fresh Preprint",
+                        "type": "Seminal Classic" if is_classic else "Fresh Preprint",
                     })
                     count += 1
-                    if count >= per_topic_limit:
+                    if count >= per_topic:
                         break
         except Exception as e:
             print(f"arXiv fetch error for {code}: {e}")
@@ -119,81 +207,123 @@ def fetch_arxiv_papers(topics, limit=5):
     return papers[:limit]
 
 
-def fetch_multi_database_classics(topics, limit=5):
-    """Fetches landmark literature evenly across topics using Semantic Scholar, OpenAlex, and Europe PMC."""
+def fetch_openalex_domain(topics, limit=5, is_classic=False):
+    """Fetches Psychology & Social Sciences directly via OpenAlex API."""
     if not topics or limit <= 0:
         return []
 
     papers = []
     seen_titles = set()
-    per_topic_limit = max(1, limit // len(topics))
+    per_topic = max(1, limit // len(topics))
 
     for t in topics:
         search_term = t["name"].replace("All ", "")
-        count = 0
+        # Enforce pre-2005 ceiling and high citation thresholds for classic literature
+        filter_str = (
+            "is_oa:true,publication_year:<2005" if is_classic else "is_oa:true"
+        )
+        sort_str = "cited_by_count:desc" if is_classic else "publication_year:desc"
 
-        # Database 1: OpenAlex Open Access API
         try:
-            oa_url = f"https://api.openalex.org/works?search={search_term}&filter=is_oa:true,publication_year:<2018&sort=cited_by_count:desc&per-page=5"
-            res = requests.get(oa_url, timeout=3).json()
+            url = f"https://api.openalex.org/works?search={search_term}&filter={filter_str}&sort={sort_str}&per-page=10"
+            res = requests.get(url, timeout=3).json()
             results = res.get("results", [])
+
+            count = 0
             for r in results:
                 t_clean = r.get("display_name", "").strip()
+                citations = r.get("cited_by_count", 0)
+
+                if is_classic and citations < 200:
+                    continue  # Require high citation consensus for classics
+
                 if t_clean and t_clean not in seen_titles:
                     seen_titles.add(t_clean)
-                    oa_pdf = r.get("open_access", {}).get("oa_url") or f"https://www.google.com/search?q={t_clean}"
+                    oa_pdf = (
+                        r.get("open_access", {}).get("oa_url")
+                        or f"https://www.google.com/search?q={t_clean}"
+                    )
                     authorships = r.get("authorships", [])
-                    authors_str = ", ".join([a.get("author", {}).get("display_name", "") for a in authorships[:2]])
+                    authors_str = ", ".join([
+                        a.get("author", {}).get("display_name", "")
+                        for a in authorships[:2]
+                    ])
+
                     papers.append({
                         "id": f"oa_{r.get('id', random.randint(1000, 9999))}",
                         "title": t_clean,
                         "authors": authors_str or "Unknown Authors",
                         "year": str(r.get("publication_year", "N/A")),
-                        "category": f"{t['name']} ({r.get('cited_by_count', 0):,} Citations)",
-                        "summary": f"Foundational paper in {search_term}. Citation count: {r.get('cited_by_count', 0):,}.",
+                        "category": (
+                            f"{t['name']} ({citations:,} Citations)"
+                            if is_classic
+                            else t["name"]
+                        ),
+                        "summary": (
+                            f"Key research work in {search_term}. Citation"
+                            f" count: {citations:,}."
+                        ),
                         "url": oa_pdf,
                         "pdf": oa_pdf,
-                        "type": "Seminal Classic",
+                        "type": "Seminal Classic" if is_classic else "Fresh Paper",
                     })
                     count += 1
-                    if count >= per_topic_limit:
+                    if count >= per_topic:
                         break
         except Exception as e:
-            print(f"OpenAlex error: {e}")
-
-        # Database 2: Europe PMC Fallback if OpenAlex falls short
-        if count < per_topic_limit:
-            try:
-                epmc_url = f"https://www.ebi.ac.uk/europepmc/webservices/rest/search?query={search_term}%20PUB_YEAR:[1900%20TO%202015]%20OPEN_ACCESS:y&format=json&pageSize=5"
-                res = requests.get(epmc_url, timeout=3).json()
-                results = res.get("resultList", {}).get("result", [])
-                for r in results:
-                    t_clean = r.get("title", "").strip(".")
-                    if t_clean and t_clean not in seen_titles:
-                        seen_titles.add(t_clean)
-                        papers.append({
-                            "id": f"epmc_{r.get('id', random.randint(1000, 9999))}",
-                            "title": t_clean,
-                            "authors": r.get("authorString", "Unknown Authors"),
-                            "year": str(r.get("pubYear", "N/A")),
-                            "category": f"{t['name']} Classic",
-                            "summary": r.get("abstractText", "Abstract available via Europe PMC open access record."),
-                            "url": f"https://europepmc.org/article/MED/{r.get('id')}",
-                            "pdf": f"https://europepmc.org/article/MED/{r.get('id')}",
-                            "type": "Seminal Classic",
-                        })
-                        count += 1
-                        if count >= per_topic_limit:
-                            break
-            except Exception as e:
-                print(f"Europe PMC error: {e}")
+            print(f"OpenAlex fetch error for {search_term}: {e}")
 
     return papers[:limit]
 
 
+def route_topic_fetch(topics, limit, is_classic=False):
+    """Routes topics to their dedicated API domain based on broad parent field."""
+    arxiv_topics = [
+        t for t in topics if t.get("parent") != "Psychology & Cognitive Science"
+    ]
+    openalex_topics = [
+        t for t in topics if t.get("parent") == "Psychology & Cognitive Science"
+    ]
+
+    results = []
+
+    if arxiv_topics:
+        results.extend(
+            fetch_arxiv_domain(
+                arxiv_topics,
+                limit=max(1, limit - len(openalex_topics)),
+                is_classic=is_classic,
+            )
+        )
+
+    if openalex_topics:
+        results.extend(
+            fetch_openalex_domain(
+                openalex_topics,
+                limit=max(1, limit - len(arxiv_topics)),
+                is_classic=is_classic,
+            )
+        )
+
+    # Fallback to curated classic database if classic query is underfilled
+    if is_classic and len(results) < limit:
+        seen = {p["title"] for p in results}
+        for c in HIGH_IMPACT_CLASSICS:
+            if c["title"] not in seen:
+                results.append(c)
+                if len(results) >= limit:
+                    break
+
+    return results[:limit]
+
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html", context={"taxonomy": BROAD_TAXONOMY})
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"taxonomy": BROAD_TAXONOMY},
+    )
 
 
 @app.post("/api/generate-deck")
@@ -206,14 +336,27 @@ async def generate_deck(request: Request):
     classic_count = round(5 * classic_ratio)
     modern_count = 5 - classic_count
 
-    modern_papers = fetch_arxiv_papers(modern_topics, limit=modern_count) if modern_count > 0 else []
-    classic_papers = fetch_multi_database_classics(classic_topics, limit=classic_count) if classic_count > 0 else []
+    modern_papers = (
+        route_topic_fetch(modern_topics, limit=modern_count, is_classic=False)
+        if modern_count > 0
+        else []
+    )
+    classic_papers = (
+        route_topic_fetch(classic_topics, limit=classic_count, is_classic=True)
+        if classic_count > 0
+        else []
+    )
 
     combined = modern_papers + classic_papers
-    
-    # If NO papers match selected filters across all databases
+
     if len(combined) == 0:
-        return JSONResponse({"deck": [], "error": "No Papers found matching your active topic filters. Please edit your search."})
+        return JSONResponse({
+            "deck": [],
+            "error": (
+                "No Papers found matching your active topic filters. Please"
+                " edit your search."
+            ),
+        })
 
     random.shuffle(combined)
     return JSONResponse({"deck": combined[:5], "error": None})
@@ -226,13 +369,16 @@ async def get_replacement_card(request: Request):
     topics = data.get("topics", [])
     seen_titles = set(data.get("seenTitles", []))
 
-    if type_needed == "classic":
-        candidates = fetch_multi_database_classics(topics, limit=5)
-    else:
-        candidates = fetch_arxiv_papers(topics, limit=5)
+    is_classic = type_needed == "classic"
+    candidates = route_topic_fetch(topics, limit=5, is_classic=is_classic)
 
     for c in candidates:
         if c["title"] not in seen_titles:
             return JSONResponse({"paper": c})
 
-    return JSONResponse({"paper": None})
+    # Backup from internal classics
+    for c in HIGH_IMPACT_CLASSICS:
+        if c["title"] not in seen_titles:
+            return JSONResponse({"paper": c})
+
+    return JSONResponse({"paper": random.choice(HIGH_IMPACT_CLASSICS)})

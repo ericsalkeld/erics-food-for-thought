@@ -21,6 +21,7 @@
         .nav-btns { display: flex; gap: 6px; }
         .btn { background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 0.78rem; cursor: pointer; text-decoration: none; }
         .btn-outline { background: transparent; border: 1px solid #38bdf8; color: #38bdf8; }
+        .btn-undo { background: #d97706; color: white; }
         
         .step-container { display: none; background: #1e293b; border-radius: 12px; border: 1px solid #334155; padding: 16px; margin-bottom: 16px; }
         .step-container.active { display: block; }
@@ -70,7 +71,7 @@
         .btn-pdf { background: #0284c7; color: white; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); z-index: 100; padding: 20px; overflow-y: auto; }
-        .history-item, .saved-item { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+        .saved-item { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -88,7 +89,7 @@
                 <h1>🧠 Eric's Food for Thought</h1>
                 <div class="nav-btns">
                     <button class="btn btn-outline" onclick="resetSetup()">⚙️ Setup</button>
-                    <button class="btn btn-outline" onclick="openHistoryModal()">📜 History</button>
+                    <button class="btn btn-undo" onclick="undoLastAction()">↺ Undo</button>
                     <button class="btn btn-outline" onclick="openSavedModal()">📁 Saved (<span id="saved-count">0</span>)</button>
                 </div>
             </header>
@@ -167,14 +168,7 @@
         </div>
     </div>
 
-    <div id="history-modal" class="modal">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h2 style="color: #38bdf8;">Reading History</h2>
-            <button class="btn" onclick="closeHistoryModal()">Close ✖</button>
-        </div>
-        <div id="history-list"></div>
-    </div>
-
+    <!-- SAVED MODAL -->
     <div id="saved-modal" class="modal">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h2 style="color: #38bdf8;">Saved Papers Folder</h2>
@@ -189,7 +183,7 @@
         let selectedClassicTopics = [];
         
         let deck = [];
-        let cardHistory = [];
+        let actionStack = []; // History stack for undo actions
         let currentIndex = 0;
 
         function goToStep(stepNum) {
@@ -235,7 +229,6 @@
             modernContainer.innerHTML = '';
             classicContainer.innerHTML = '';
 
-            // Render Active Tag Chips
             document.getElementById('modern-active-tags').innerHTML = selectedModernTopics.map((t, i) => `
                 <div class="sub-chip selected-modern" onclick="removeTag('modern', ${i})">📌 ${t.name} ✖</div>
             `).join('');
@@ -256,6 +249,21 @@
                 cDiv.innerHTML = `<div style="font-size:0.75rem; color:#fef08a; font-weight:700; margin-bottom:4px;">${broad}</div>`;
                 const cChips = document.createElement('div');
                 cChips.className = 'chip-container';
+
+                // REINSTATED: General Subject Category Chip (e.g. All Physics)
+                const isMBroad = selectedModernTopics.some(t => t.name === `All ${broad}`);
+                const mBroadChip = document.createElement('div');
+                mBroadChip.className = `sub-chip ${isMBroad ? 'selected-modern' : ''}`;
+                mBroadChip.innerText = `All ${broad}`;
+                mBroadChip.onclick = () => toggleTopic('modern', { name: `All ${broad}`, code: taxonomyData[broad].arxiv_query || broad, parent: broad });
+                mChips.appendChild(mBroadChip);
+
+                const isCBroad = selectedClassicTopics.some(t => t.name === `All ${broad}`);
+                const cBroadChip = document.createElement('div');
+                cBroadChip.className = `sub-chip ${isCBroad ? 'selected-classic' : ''}`;
+                cBroadChip.innerText = `All ${broad}`;
+                cBroadChip.onclick = () => toggleTopic('classic', { name: `All ${broad}`, code: taxonomyData[broad].arxiv_query || broad, parent: broad });
+                cChips.appendChild(cBroadChip);
 
                 Object.entries(taxonomyData[broad].subcategories).forEach(([subName, code]) => {
                     const isM = selectedModernTopics.some(t => t.name === subName);
@@ -337,7 +345,7 @@
             document.getElementById('deck-screen').style.display = 'flex';
 
             deck = data.deck;
-            cardHistory = [];
+            actionStack = [];
             currentIndex = 0;
             renderCard();
         }
@@ -368,10 +376,6 @@
             
             document.getElementById('current-index').innerText = currentIndex + 1;
             document.getElementById('total-cards').innerText = deck.length;
-
-            if (!cardHistory.some(p => p.title === paper.title)) {
-                cardHistory.push(paper);
-            }
         }
 
         function toggleExpand() {
@@ -405,6 +409,7 @@
             card.classList.add('slide-out-left');
 
             const passedPaper = deck[currentIndex];
+            actionStack.push({ type: 'pass', paper: passedPaper, index: currentIndex });
 
             setTimeout(async () => {
                 card.classList.remove('slide-out-left');
@@ -412,7 +417,7 @@
                 
                 const isClassic = passedPaper.type && passedPaper.type.includes('Classic');
                 const fetchTopics = isClassic ? selectedClassicTopics : selectedModernTopics;
-                const seenTitles = cardHistory.map(p => p.title);
+                const seenTitles = deck.map(p => p.title);
 
                 try {
                     const res = await fetch('/api/replacement-card', {
@@ -442,7 +447,7 @@
             }, 300);
         }
 
-        function saveCurrentPaper() {
+        async function saveCurrentPaper() {
             if (deck.length === 0) return;
             const paper = deck[currentIndex];
             let saved = JSON.parse(localStorage.getItem('saved_papers') || '[]');
@@ -456,36 +461,71 @@
             const card = document.getElementById('card-element');
             card.classList.add('slide-out-right');
 
-            setTimeout(() => {
+            actionStack.push({ type: 'save', paper: paper, index: currentIndex });
+
+            setTimeout(async () => {
                 card.classList.remove('slide-out-right');
-                currentIndex = (currentIndex + 1) % deck.length;
+                // Permanent removal on save + instant replacement
+                deck.splice(currentIndex, 1);
+
+                const isClassic = paper.type && paper.type.includes('Classic');
+                const fetchTopics = isClassic ? selectedClassicTopics : selectedModernTopics;
+                const seenTitles = deck.map(p => p.title);
+
+                try {
+                    const res = await fetch('/api/replacement-card', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: isClassic ? 'classic' : 'modern',
+                            topics: fetchTopics,
+                            seenTitles: seenTitles
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.paper && !deck.some(p => p.title === data.paper.title)) {
+                        deck.push(data.paper);
+                    }
+                } catch(e) {
+                    console.log("Could not fetch replacement card:", e);
+                }
+
+                if (deck.length === 0) {
+                    resetSetup();
+                    return;
+                }
+
+                currentIndex = currentIndex % deck.length;
                 renderCard();
             }, 300);
+        }
+
+        function undoLastAction() {
+            if (actionStack.length === 0) {
+                alert("Nothing to undo!");
+                return;
+            }
+
+            const lastAction = actionStack.pop();
+            const restoredPaper = lastAction.paper;
+
+            if (lastAction.type === 'save') {
+                let saved = JSON.parse(localStorage.getItem('saved_papers') || '[]');
+                saved = saved.filter(p => p.title !== restoredPaper.title);
+                localStorage.setItem('saved_papers', JSON.stringify(saved));
+                updateSavedCount();
+            }
+
+            // Insert restored paper back into active deck
+            deck.splice(lastAction.index, 0, restoredPaper);
+            currentIndex = lastAction.index;
+            renderCard();
         }
 
         function updateSavedCount() {
             let saved = JSON.parse(localStorage.getItem('saved_papers') || '[]');
             document.getElementById('saved-count').innerText = saved.length;
         }
-
-        function openHistoryModal() {
-            const listEl = document.getElementById('history-list');
-            if (cardHistory.length === 0) {
-                listEl.innerHTML = '<p style="color: #94a3b8; text-align: center;">No cards viewed yet.</p>';
-            } else {
-                listEl.innerHTML = cardHistory.map(p => `
-                    <div class="history-item">
-                        <span class="badge ${p.type && p.type.includes('Classic') ? 'classic-badge' : ''}">${p.category}</span>
-                        <div style="font-weight: 600; font-size: 0.9rem; margin: 4px 0;">${p.title}</div>
-                        <div style="font-size: 0.75rem; color: #38bdf8; margin-bottom: 6px;">${p.authors} (${p.year})</div>
-                        <a href="${p.pdf}" target="_blank" class="btn" style="display: inline-block; font-size: 0.72rem;">View PDF 📄</a>
-                    </div>
-                `).join('');
-            }
-            document.getElementById('history-modal').style.display = 'block';
-        }
-
-        function closeHistoryModal() { document.getElementById('history-modal').style.display = 'none'; }
 
         function openSavedModal() {
             let saved = JSON.parse(localStorage.getItem('saved_papers') || '[]');
