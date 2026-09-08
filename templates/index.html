@@ -239,35 +239,34 @@
         }
 
         async function startReadingDeck() {
-            const classicRatio = document.getElementById('classic-slider').value;
+    const classicRatio = document.getElementById('classic-slider').value;
 
-            document.getElementById('onboarding-screen').style.display = 'none';
-            document.getElementById('deck-screen').style.display = 'flex';
+    document.getElementById('onboarding-screen').style.display = 'none';
+    document.getElementById('deck-screen').style.display = 'flex';
 
-            const res = await fetch('/api/generate-deck', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    categories: [...new Set(selectedTopics.map(t => t.parent))],
-                    selectedTopics: selectedTopics,
-                    classicRatio: classicRatio
-                })
-            });
+    const res = await fetch('/api/generate-deck', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            selectedTopics: selectedTopics,
+            classicRatio: classicRatio
+        })
+    });
 
-            const data = await res.json();
-            deck = data.deck;
-            currentIndex = 0;
+    const data = await res.json();
+    deck = data.deck;
+    currentIndex = 0;
 
-            const warningBanner = document.getElementById('warning-banner');
-            if (data.warnings && data.warnings.length > 0) {
-                warningBanner.innerText = data.warnings.join(" ");
-                warningBanner.style.display = 'block';
-            } else {
-                warningBanner.style.display = 'none';
-            }
+    const warningBanner = document.getElementById('warning-banner');
+    if (data.no_classics_found) {
+        warningBanner.innerText = "⚠️ No open-access classic papers found for this specific topic. Showing available literature.";
+        warningBanner.style.display = 'block';
+    } else {
+        warningBanner.style.display = 'none';
+    }
 
-            renderCard();
-        }
+    renderCard();
+}
 
         function renderCard() {
             if (!deck || deck.length === 0) return;
