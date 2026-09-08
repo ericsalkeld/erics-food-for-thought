@@ -24,16 +24,19 @@
         .btn { background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 0.78rem; cursor: pointer; text-decoration: none; }
         .btn-outline { background: transparent; border: 1px solid #38bdf8; color: #38bdf8; }
         
-        #onboarding-screen { display: block; }
-        .section-title { font-size: 0.88rem; font-weight: 700; color: #38bdf8; margin: 16px 0 8px 0; border-bottom: 1px solid #1e293b; padding-bottom: 4px; }
+        .step-container { display: none; background: #1e293b; border-radius: 12px; border: 1px solid #334155; padding: 16px; margin-bottom: 16px; }
+        .step-container.active { display: block; }
         
-        .drawer { background: #1e293b; border-radius: 10px; border: 1px solid #334155; padding: 12px; margin-bottom: 12px; }
-        .chip-container { display: flex; flex-wrap: wrap; gap: 6px; }
-        .sub-chip { background: #0f172a; border: 1px solid #334155; padding: 5px 9px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; color: #cbd5e1; }
+        .section-title { font-size: 0.95rem; font-weight: 700; color: #38bdf8; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        
+        input[type="text"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 12px; font-size: 0.85rem; }
+        
+        .chip-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .sub-chip { background: #0f172a; border: 1px solid #334155; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; color: #cbd5e1; }
         .sub-chip.selected-modern { background: #0284c7; border-color: #38bdf8; color: white; font-weight: 600; }
         .sub-chip.selected-classic { background: #854d0e; border-color: #fef08a; color: white; font-weight: 600; }
 
-        .slider-group { background: #1e293b; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 16px; }
+        .slider-group { background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 16px; }
         .slider-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px; color: #cbd5e1; }
         input[type="range"] { width: 100%; }
 
@@ -68,41 +71,58 @@
 <body>
 
     <div class="page-layout">
-        <!-- LEFT QUOTE SIDEBAR (Desktop Only) -->
+        <!-- LEFT QUOTE SIDEBAR -->
         <div class="quote-sidebar">
             <div class="quote-box">"BA-KLA-VA"</div>
             <div class="quote-box">"Your shirt... it's so plain"</div>
             <div class="quote-box">"Now Tayne I can get into!"</div>
+            <div class="quote-box">"I'm a doctor too you know"</div>
         </div>
 
-        <!-- MAIN APPLICATION CONTAINER -->
+        <!-- MAIN APPLICATION -->
         <div class="main-app">
             <header>
                 <h1>🧠 Eric's Food for Thought</h1>
                 <div class="nav-btns">
-                    <button class="btn btn-outline" onclick="showOnboarding()">⚙️ Setup</button>
+                    <button class="btn btn-outline" onclick="resetSetup()">⚙️ Setup</button>
                     <button class="btn btn-outline" onclick="openHistoryModal()">📜 History</button>
                     <button class="btn btn-outline" onclick="openSavedModal()">📁 Saved (<span id="saved-count">0</span>)</button>
                 </div>
             </header>
 
-            <!-- SETUP & TOPIC SELECTION SCREEN -->
-            <div id="onboarding-screen">
+            <!-- STEP 1: RATIO SELECTION -->
+            <div id="step-1" class="step-container active">
+                <div class="section-title">Step 1: Choose Mix Ratio</div>
                 <div class="slider-group">
                     <div class="slider-label">
-                        <span>Deck Ratio:</span>
+                        <span>Ratio:</span>
                         <span id="ratio-label">70% Modern / 30% Classics</span>
                     </div>
                     <input type="range" id="classic-slider" min="0" max="1" step="0.1" value="0.3" oninput="updateRatioLabel(this.value)">
                 </div>
+                <button class="btn" style="width:100%; padding:10px;" onclick="goToStep(2)">Next: Modern Topics ➔</button>
+            </div>
 
-                <div class="section-title">1. Select Topics for Modern Preprints (Blue):</div>
-                <div class="drawer" id="modern-drawers"></div>
+            <!-- STEP 2: MODERN TOPICS -->
+            <div id="step-2" class="step-container">
+                <div class="section-title">Step 2: Filter Modern Preprints</div>
+                <input type="text" id="modern-custom-search" placeholder="Search custom topic (e.g. Neutrino Physics, Quantum Optics)...">
+                <div id="modern-drawers"></div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-outline" style="flex:1;" onclick="goToStep(1)">⬅ Back</button>
+                    <button class="btn" style="flex:2;" onclick="goToStep(3)">Next: Classic Topics ➔</button>
+                </div>
+            </div>
 
-                <div class="section-title">2. Select Topics for Classic Literature (Gold):</div>
-                <div class="drawer" id="classic-drawers"></div>
-
-                <button class="btn" style="width: 100%; padding: 12px; font-size: 0.95rem; margin-top: 10px;" onclick="startReadingDeck()">Launch Flashcard Deck 🚀</button>
+            <!-- STEP 3: CLASSIC TOPICS -->
+            <div id="step-3" class="step-container">
+                <div class="section-title">Step 3: Filter Classic Literature</div>
+                <input type="text" id="classic-custom-search" placeholder="Search custom topic (e.g. Behavioral Psychology, Relativity)...">
+                <div id="classic-drawers"></div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-outline" style="flex:1;" onclick="goToStep(2)">⬅ Back</button>
+                    <button class="btn" style="flex:2;" onclick="startReadingDeck()">Launch Flashcard Deck 🚀</button>
+                </div>
             </div>
 
             <!-- FLASHCARD DECK SCREEN -->
@@ -127,10 +147,11 @@
             </div>
         </div>
 
-        <!-- RIGHT QUOTE SIDEBAR (Desktop Only) -->
+        <!-- RIGHT QUOTE SIDEBAR -->
         <div class="quote-sidebar">
             <div class="quote-box">"space space space space space space space space space..."</div>
             <div class="quote-box">"If you want to keep my boy's voice high, you gotta keep him dry!"</div>
+            <div class="quote-box">"I do this every night with your son"</div>
         </div>
     </div>
 
@@ -154,16 +175,22 @@
 
     <script>
         const taxonomyData = {{ taxonomy | tojson }};
-        let selectedModernTopics = [
-            { name: 'Quantum Physics', code: 'cat:quant-ph', parent: 'Physics' }
-        ];
-        let selectedClassicTopics = [
-            { name: 'Quantum Physics', code: 'cat:quant-ph', parent: 'Physics' }
-        ];
+        let selectedModernTopics = [{ name: 'Quantum Physics', code: 'cat:quant-ph', parent: 'Physics' }];
+        let selectedClassicTopics = [{ name: 'Quantum Physics', code: 'cat:quant-ph', parent: 'Physics' }];
         
         let deck = [];
         let cardHistory = [];
         let currentIndex = 0;
+
+        function goToStep(stepNum) {
+            document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step-${stepNum}`).classList.add('active');
+            document.getElementById('deck-screen').style.display = 'none';
+        }
+
+        function resetSetup() {
+            goToStep(1);
+        }
 
         function renderDrawers() {
             const modernContainer = document.getElementById('modern-drawers');
@@ -186,8 +213,22 @@
                 const cChips = document.createElement('div');
                 cChips.className = 'chip-container';
 
+                // Add Broad Category Chip option
+                const mBroadSel = selectedModernTopics.some(t => t.name === broad);
+                const mBroadChip = document.createElement('div');
+                mBroadChip.className = `sub-chip ${mBroadSel ? 'selected-modern' : ''}`;
+                mBroadChip.innerText = `All ${broad}`;
+                mBroadChip.onclick = () => toggleTopic('modern', { name: broad, code: taxonomyData[broad].arxiv_query || broad, parent: broad });
+                mChips.appendChild(mBroadChip);
+
+                const cBroadSel = selectedClassicTopics.some(t => t.name === broad);
+                const cBroadChip = document.createElement('div');
+                cBroadChip.className = `sub-chip ${cBroadSel ? 'selected-classic' : ''}`;
+                cBroadChip.innerText = `All ${broad}`;
+                cBroadChip.onclick = () => toggleTopic('classic', { name: broad, code: taxonomyData[broad].arxiv_query || broad, parent: broad });
+                cChips.appendChild(cBroadChip);
+
                 Object.entries(taxonomyData[broad].subcategories).forEach(([subName, code]) => {
-                    // Modern Chip
                     const isM = selectedModernTopics.some(t => t.name === subName);
                     const mChip = document.createElement('div');
                     mChip.className = `sub-chip ${isM ? 'selected-modern' : ''}`;
@@ -195,7 +236,6 @@
                     mChip.onclick = () => toggleTopic('modern', { name: subName, code, parent: broad });
                     mChips.appendChild(mChip);
 
-                    // Classic Chip
                     const isC = selectedClassicTopics.some(t => t.name === subName);
                     const cChip = document.createElement('div');
                     cChip.className = `sub-chip ${isC ? 'selected-classic' : ''}`;
@@ -229,15 +269,19 @@
             document.getElementById('ratio-label').innerText = `${mod}% Modern / ${clas}% Classics`;
         }
 
-        function showOnboarding() {
-            document.getElementById('onboarding-screen').style.display = 'block';
-            document.getElementById('deck-screen').style.display = 'none';
-        }
-
         async function startReadingDeck() {
             const classicRatio = document.getElementById('classic-slider').value;
+            const modernCustom = document.getElementById('modern-custom-search').value.trim();
+            const classicCustom = document.getElementById('classic-custom-search').value.trim();
 
-            document.getElementById('onboarding-screen').style.display = 'none';
+            if (modernCustom) {
+                selectedModernTopics.push({ name: modernCustom, code: modernCustom, parent: 'Custom' });
+            }
+            if (classicCustom) {
+                selectedClassicTopics.push({ name: classicCustom, code: classicCustom, parent: 'Custom' });
+            }
+
+            document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
             document.getElementById('deck-screen').style.display = 'flex';
 
             const res = await fetch('/api/generate-deck', {
@@ -258,8 +302,12 @@
         }
 
         function renderCard() {
-            if (!deck || deck.length === 0) return;
+            if (!deck || deck.length === 0) {
+                document.getElementById('card-element').style.display = 'none';
+                return;
+            }
 
+            document.getElementById('card-element').style.display = 'block';
             const paper = deck[currentIndex];
             const card = document.getElementById('card-element');
             card.classList.remove('expanded');
@@ -280,7 +328,6 @@
             document.getElementById('current-index').innerText = currentIndex + 1;
             document.getElementById('total-cards').innerText = deck.length;
 
-            // Track reading history
             if (!cardHistory.some(p => p.title === paper.title)) {
                 cardHistory.push(paper);
             }
@@ -318,14 +365,16 @@
 
             setTimeout(() => {
                 card.classList.remove('slide-out-left');
-                // Move current passed card to the BOTTOM of the pile array
-                const passedPaper = deck.splice(currentIndex, 1)[0];
-                deck.push(passedPaper);
+                // PERMANENT REMOVAL: Remove current passed paper from deck array
+                deck.splice(currentIndex, 1);
                 
-                // Keep index valid
-                if (currentIndex >= deck.length) {
-                    currentIndex = 0;
+                if (deck.length === 0) {
+                    alert("You have passed all cards in this deck! Hit Setup to generate a new feed.");
+                    resetSetup();
+                    return;
                 }
+
+                currentIndex = currentIndex % deck.length;
                 renderCard();
             }, 300);
         }
