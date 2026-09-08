@@ -14,18 +14,16 @@
         .btn { background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; cursor: pointer; text-decoration: none; }
         .btn-outline { background: transparent; border: 1px solid #38bdf8; color: #38bdf8; }
         
-        /* Onboarding Screen */
         #onboarding-screen { display: block; }
         .section-title { font-size: 0.95rem; font-weight: 600; color: #94a3b8; margin: 16px 0 8px 0; }
         .grid-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
         .option-chip { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px; font-size: 0.85rem; cursor: pointer; text-align: center; font-weight: 500; }
         .option-chip.selected { background: #0284c7; border-color: #38bdf8; color: white; }
         
-        .sub-group { margin-bottom: 12px; padding: 10px; background: #1e293b; border-radius: 8px; border: 1px solid #334155; }
-        .sub-title { font-size: 0.8rem; color: #38bdf8; font-weight: 600; margin-bottom: 6px; }
-        .sub-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-        .sub-chip { background: #0f172a; border: 1px solid #334155; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
-        .sub-chip.selected { background: #059669; border-color: #34d399; color: white; }
+        .sub-group { margin-bottom: 12px; padding: 12px; background: #1e293b; border-radius: 8px; border: 1px solid #334155; }
+        .sub-title { font-size: 0.82rem; color: #38bdf8; font-weight: 600; margin-bottom: 6px; }
+        
+        select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.85rem; }
 
         input[type="text"] { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: white; margin-bottom: 16px; font-size: 0.85rem; }
         
@@ -33,7 +31,6 @@
         .slider-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px; color: #cbd5e1; }
         input[type="range"] { width: 100%; }
 
-        /* Deck View */
         #deck-screen { display: none; flex-direction: column; flex: 1; }
         .warning-banner { background: #78350f; color: #fef08a; padding: 8px 12px; border-radius: 8px; font-size: 0.75rem; margin-bottom: 12px; display: none; }
         
@@ -83,13 +80,13 @@
             {% endfor %}
         </div>
 
-        <div class="section-title">2. Select Specific Subcategories (Optional):</div>
+        <div class="section-title">2. Select Specific Subcategory (Optional):</div>
         <div id="subcategories-container">
-            <!-- Dynamically loaded subcategory chips -->
+            <!-- Dropdown selectors dynamically inserted here -->
         </div>
 
-        <div class="section-title">3. Add Custom Subject Search (Optional):</div>
-        <input type="text" id="custom-topic" placeholder="e.g. Behavioral Economics, Synthetic Biology...">
+        <div class="section-title">3. Custom Search Keyword (Optional):</div>
+        <input type="text" id="custom-topic" placeholder="e.g. Behavioral Economics, Quantum Optics...">
 
         <div class="slider-group">
             <div class="slider-label">
@@ -146,12 +143,11 @@
     <script>
         const categoriesData = {{ categories | tojson }};
         let selectedCategories = ['Physics'];
-        let selectedSubcategories = [];
         let landmarkScope = 'broad';
         let deck = [];
         let currentIndex = 0;
 
-        function renderSubcategories() {
+        function renderSubcategoryDropdowns() {
             const container = document.getElementById('subcategories-container');
             container.innerHTML = '';
 
@@ -159,21 +155,30 @@
                 if (categoriesData[cat] && categoriesData[cat].subcategories) {
                     const group = document.createElement('div');
                     group.className = 'sub-group';
-                    group.innerHTML = `<div class="sub-title">${cat} Subcategories</div>`;
                     
-                    const chips = document.createElement('div');
-                    chips.className = 'sub-chips';
+                    const label = document.createElement('div');
+                    label.className = 'sub-title';
+                    label.innerText = `${cat} Subcategory Focus:`;
 
-                    categoriesData[cat].subcategories.forEach(sub => {
-                        const isSel = selectedSubcategories.includes(sub);
-                        const chip = document.createElement('div');
-                        chip.className = `sub-chip ${isSel ? 'selected' : ''}`;
-                        chip.innerText = sub;
-                        chip.onclick = () => toggleSubcategory(sub, chip);
-                        chips.appendChild(chip);
+                    const select = document.createElement('select');
+                    select.id = `select-sub-${cat}`;
+                    
+                    // Default option to keep broad
+                    const defaultOpt = document.createElement('option');
+                    defaultOpt.value = "";
+                    defaultOpt.innerText = `-- All ${cat} (Broad Subject Area) --`;
+                    select.appendChild(defaultOpt);
+
+                    // Add specific subcategory options from master data
+                    Object.keys(categoriesData[cat].subcategories).forEach(sub => {
+                        const opt = document.createElement('option');
+                        opt.value = sub;
+                        opt.innerText = sub;
+                        select.appendChild(opt);
                     });
 
-                    group.appendChild(chips);
+                    group.appendChild(label);
+                    group.appendChild(select);
                     container.appendChild(group);
                 }
             });
@@ -189,17 +194,7 @@
                 selectedCategories.push(cat);
                 el.classList.add('selected');
             }
-            renderSubcategories();
-        }
-
-        function toggleSubcategory(sub, el) {
-            if (selectedSubcategories.includes(sub)) {
-                selectedSubcategories = selectedSubcategories.filter(s => s !== sub);
-                el.classList.remove('selected');
-            } else {
-                selectedSubcategories.push(sub);
-                el.classList.add('selected');
-            }
+            renderSubcategoryDropdowns();
         }
 
         function updateRatioLabel(val) {
@@ -223,6 +218,15 @@
         async function startReadingDeck() {
             const customTopic = document.getElementById('custom-topic').value;
             const classicRatio = document.getElementById('classic-slider').value;
+
+            // Collect selected dropdown subcategories
+            let selectedSubcategories = [];
+            selectedCategories.forEach(cat => {
+                const selectEl = document.getElementById(`select-sub-${cat}`);
+                if (selectEl && selectEl.value) {
+                    selectedSubcategories.push(selectEl.value);
+                }
+            });
 
             document.getElementById('onboarding-screen').style.display = 'none';
             document.getElementById('deck-screen').style.display = 'flex';
@@ -369,7 +373,7 @@
         }
 
         updateSavedCount();
-        renderSubcategories();
+        renderSubcategoryDropdowns();
     </script>
 </body>
 </html>

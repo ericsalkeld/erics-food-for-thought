@@ -8,76 +8,66 @@ import requests
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# Master list of available broad fields and subcategories
+# Master dictionary with valid arXiv queries mapped to specific subcategories
 BROAD_CATEGORIES = {
     "Physics": {
-        "arxiv_code": "cat:quant-ph OR cat:physics.flu-dyn OR cat:cond-mat.stat-mech",
+        "arxiv_broad": "cat:quant-ph OR cat:physics.flu-dyn OR cat:cond-mat.stat-mech",
         "access_note": None,
-        "subcategories": [
-            "Quantum Physics",
-            "Fluid Dynamics",
-            "Statistical Mechanics",
-            "Condensed Matter",
-        ],
-    },
-    "Psychology": {
-        "arxiv_code": None,
-        "access_note": (
-            "Access to Psychology preprints is limited compared to arXiv physics."
-            " Drawing from Semantic Scholar."
-        ),
-        "subcategories": [
-            "Developmental Psychology",
-            "Cognitive Psychology",
-            "Neuroscience",
-            "Social Psychology",
-        ],
-    },
-    "Biology": {
-        "arxiv_code": "cat:q-bio.NC OR cat:q-bio.BM",
-        "access_note": None,
-        "subcategories": [
-            "Mathematical Biology",
-            "Neuroscience",
-            "Genomics",
-            "Ecology",
-        ],
-    },
-    "Chemistry": {
-        "arxiv_code": None,
-        "access_note": (
-            "Chemistry open-access preprints drawn via Semantic Scholar open"
-            " access."
-        ),
-        "subcategories": [
-            "Physical Chemistry",
-            "Biochemistry",
-            "Organic Chemistry",
-            "Materials Science",
-        ],
+        "subcategories": {
+            "Quantum Physics": "cat:quant-ph",
+            "Fluid Dynamics": "cat:physics.flu-dyn",
+            "Statistical Mechanics": "cat:cond-mat.stat-mech",
+            "Condensed Matter": "cat:cond-mat.str-el",
+        },
     },
     "Computer Science": {
-        "arxiv_code": "cat:cs.LG OR cat:cs.AI",
+        "arxiv_broad": "cat:cs.LG OR cat:cs.AI OR cat:cs.ET",
         "access_note": None,
-        "subcategories": [
-            "Machine Learning",
-            "Artificial Intelligence",
-            "Quantum Computing",
-            "Theory of Computation",
-        ],
+        "subcategories": {
+            "Machine Learning": "cat:cs.LG",
+            "Artificial Intelligence": "cat:cs.AI",
+            "Quantum Computing": "cat:quant-ph AND (ti:quantum OR abs:quantum)",
+            "Theory of Computation": "cat:cs.CC",
+        },
+    },
+    "Biology": {
+        "arxiv_broad": "cat:q-bio.NC OR cat:q-bio.BM OR cat:q-bio.MN",
+        "access_note": None,
+        "subcategories": {
+            "Neuroscience": "cat:q-bio.NC",
+            "Biomolecules": "cat:q-bio.BM",
+            "Genomics": "cat:q-bio.GN",
+            "Mathematical Biology": "cat:q-bio.MN",
+        },
+    },
+    "Psychology": {
+        "arxiv_broad": None,
+        "access_note": "Psychology preprints are drawn via Semantic Scholar open access.",
+        "subcategories": {
+            "Developmental Psychology": "Developmental Psychology",
+            "Cognitive Psychology": "Cognitive Psychology",
+            "Neuroscience": "Cognitive Neuroscience",
+            "Social Psychology": "Social Psychology",
+        },
+    },
+    "Chemistry": {
+        "arxiv_broad": None,
+        "access_note": "Chemistry open preprints rely on Semantic Scholar.",
+        "subcategories": {
+            "Physical Chemistry": "Physical Chemistry",
+            "Biochemistry": "Biochemistry",
+            "Materials Science": "Materials Science",
+        },
     },
     "Humanities & Social Sciences": {
-        "arxiv_code": None,
-        "access_note": (
-            "Humanities coverage relies on open-access repositories and"
-            " Semantic Scholar."
-        ),
-        "subcategories": [
-            "Philosophy of Science",
-            "Linguistics",
-            "Sociology",
-            "Economics",
-        ],
+        "arxiv_broad": None,
+        "access_note": "Humanities preprints rely on Semantic Scholar open repositories.",
+        "subcategories": {
+            "Philosophy of Science": "Philosophy of Science",
+            "Linguistics": "Linguistics",
+            "Sociology": "Sociology",
+            "Economics": "cat:econ.EM",
+        },
     },
 }
 
@@ -109,36 +99,48 @@ FALLBACK_CLASSICS = [
         "pdf": "https://math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf",
         "type": "Seminal Classic",
     },
-    {
-        "title": "Stage Theory of Cognitive Development",
-        "authors": "Jean Piaget",
-        "year": "1952",
-        "category": "Classic / Psychology",
-        "summary": "Piaget outlines cognitive development stages in children.",
-        "pdf": "https://www.google.com/search?q=Piaget+Cognitive+Development+1952",
-        "type": "Seminal Classic",
-    },
 ]
 
 
-def fetch_arxiv_papers(selected_categories, limit=3):
-    papers = []
-    # Build combined query for categories supported on arXiv
-    queries = [
-        BROAD_CATEGORIES[c]["arxiv_code"]
+def build_arxiv_query(selected_categories, selected_subcategories):
+    """If specific subcategories are chosen, strictly restricts modern queries to those tags.
+
+    Otherwise falls back to broad category tags.
+    """
+    strict_queries = []
+
+    # Check if selected subcategories map to arXiv codes
+    if selected_subcategories:
+        for broad_cat in selected_categories:
+            if broad_cat in BROAD_CATEGORIES:
+                sub_dict = BROAD_CATEGORIES[broad_cat]["subcategories"]
+                for sub in selected_subcategories:
+                    if sub in sub_dict and sub_dict[sub].startswith("cat:"):
+                        strict_queries.append(sub_dict[sub])
+
+    # If subcategories were selected for arXiv, return strictly filtered query
+    if strict_queries:
+        return " OR ".join(strict_queries)
+
+    # Otherwise default to broad subject area queries
+    broad_queries = [
+        BROAD_CATEGORIES[c]["arxiv_broad"]
         for c in selected_categories
-        if c in BROAD_CATEGORIES and BROAD_CATEGORIES[c]["arxiv_code"]
+        if c in BROAD_CATEGORIES and BROAD_CATEGORIES[c]["arxiv_broad"]
     ]
 
-    if not queries:
+    return " OR ".join(broad_queries) if broad_queries else None
+
+
+def fetch_arxiv_papers(query, limit=3):
+    if not query:
         return []
 
-    combined_query = " OR ".join(queries)
-
+    papers = []
     try:
         client = arxiv.Client(page_size=limit, delay_seconds=2, num_retries=1)
         search = arxiv.Search(
-            query=combined_query,
+            query=query,
             max_results=limit,
             sort_by=arxiv.SortCriterion.SubmittedDate,
             sort_order=arxiv.SortOrder.Descending,
@@ -227,17 +229,19 @@ async def generate_deck(request: Request):
     selected_categories = data.get("categories", ["Physics"])
     selected_subs = data.get("subcategories", [])
     custom_topic = data.get("customTopic", "")
-    classic_ratio = float(data.get("classicRatio", 0.3))  # e.g., 0.3 = 30%
+    classic_ratio = float(data.get("classicRatio", 0.3))
     landmark_scope = data.get("landmarkScope", "broad")
 
     if custom_topic:
         selected_subs.append(custom_topic)
 
-    # Calculate modern vs classic counts for a 5-card deck
     classic_count = round(5 * classic_ratio)
     modern_count = 5 - classic_count
 
-    modern_papers = fetch_arxiv_papers(selected_categories, limit=modern_count)
+    # Build strict query if specific topics are selected, otherwise broad
+    arxiv_query = build_arxiv_query(selected_categories, selected_subs)
+
+    modern_papers = fetch_arxiv_papers(arxiv_query, limit=modern_count)
     classic_papers = fetch_semantic_scholar_papers(
         selected_categories,
         selected_subs,
@@ -247,7 +251,6 @@ async def generate_deck(request: Request):
 
     combined = modern_papers + classic_papers
 
-    # Fill remaining if APIs rate-limit
     if len(combined) < 5:
         combined.extend(
             random.sample(
@@ -257,7 +260,6 @@ async def generate_deck(request: Request):
 
     random.shuffle(combined)
 
-    # Collect access warnings
     warnings = [
         BROAD_CATEGORIES[c]["access_note"]
         for c in selected_categories
