@@ -615,4 +615,149 @@ CLASSICS_DATABASE = [
         "summary": "Neher and Sakmann invent the patch-clamp technique, allowing measurement of single ion channel currents.",
         "pdf": "https://www.nature.com/articles/260799a0",
     },
+    # ==========================================
+    # --- MATHEMATICS ---
+    # ==========================================
+    {
+        "id": "math_1",
+        "title": "Modular Elliptic Curves and Fermat's Last Theorem",
+        "authors": "Andrew Wiles",
+        "year": "1995",
+        "category": "Number Theory",
+        "parent": "Mathematics",
+        "summary": "Wiles proves the Taniyama-Shimura-Weil conjecture for semistable elliptic curves, resolving Fermat's Last Theorem.",
+        "pdf": "https://annals.math.princeton.edu/1995/141-3/p01",
+    },
+    {
+        "id": "math_2",
+        "title": "On the Number of Primes Less Than a Given Magnitude",
+        "authors": "Bernhard Riemann",
+        "year": "1859",
+        "category": "Number Theory",
+        "parent": "Mathematics",
+        "summary": "Riemann introduces the analytical properties of the Riemann zeta function and states the Riemann Hypothesis.",
+        "pdf": "https://www.claymath.org/sites/default/files/riemann1859.pdf",
+    },
+    {
+        "id": "math_3",
+        "title": "The Entropy of Dynamical Systems",
+        "authors": "A. N. Kolmogorov",
+        "year": "1958",
+        "category": "Probability",
+        "parent": "Mathematics",
+        "summary": "Kolmogorov introduces measure-theoretic entropy into ergodic theory and dynamical systems.",
+        "pdf": "https://www.google.com/search?q=Kolmogorov+1958+entropy+dynamical+systems+pdf",
+    },
+    {
+        "id": "math_4",
+        "title": "Polynomial-time Algorithms for Prime Factorization and Discrete Logarithms on a Quantum Computer",
+        "authors": "Peter W. Shor",
+        "year": "1994",
+        "category": "Combinatorics",
+        "parent": "Mathematics",
+        "summary": "Shor presents his quantum algorithm breaking RSA encryption in polynomial time.",
+        "pdf": "https://arxiv.org/abs/quant-ph/9508027",
+    },
+    {
+        "id": "math_5",
+        "title": "The Poincaré Conjecture",
+        "authors": "Grigori Perelman",
+        "year": "2002",
+        "category": "Differential Geometry",
+        "parent": "Mathematics",
+        "summary": "Perelman introduces Ricci flow with surgery to prove Thurston's Geometrization Conjecture and the Poincaré Conjecture.",
+        "pdf": "https://arxiv.org/abs/math/0211159",
+    },
+    {
+        "id": "math_6",
+        "title": "Sur la Propriété de Baire",
+        "authors": "Stefan Banach",
+        "year": "1922",
+        "category": "Analysis of PDEs",
+        "parent": "Mathematics",
+        "summary": "Banach lays the foundations of functional analysis and complete normed vector spaces (Banach spaces).",
+        "pdf": "https://www.google.com/search?q=Banach+1922+functional+analysis+pdf",
+    },
+
+    # ==========================================
+    # --- ADDITIONAL PHYSICS ---
+    # ==========================================
+    {
+        "id": "phys_16",
+        "title": "Quantum Mechanics of One- and Two-Electron Atoms",
+        "authors": "H. A. Bethe, E. E. Salpeter",
+        "year": "1957",
+        "category": "Nuclear & Atomic Physics",
+        "parent": "Physics",
+        "summary": "The definitive theoretical exposition on relativistic and non-relativistic quantum states in light atoms.",
+        "pdf": "https://link.springer.com/book/10.1007/978-3-643-80714-3",
+    },
+    {
+        "id": "phys_17",
+        "title": "A Model of Leptons",
+        "authors": "Steven Weinberg",
+        "year": "1967",
+        "category": "High Energy Physics",
+        "parent": "Physics",
+        "summary": "Weinberg unifies electromagnetism and the weak nuclear force into electroweak theory.",
+        "pdf": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.19.1264",
+    },
+    {
+        "id": "phys_18",
+        "title": "Self-Organized Criticality: An Explanation of the 1/f Noise",
+        "authors": "P. Bak, C. Tang, K. Wiesenfeld",
+        "year": "1987",
+        "category": "Statistical Mechanics",
+        "parent": "Physics",
+        "summary": "Introduces the sandpile model and self-organized criticality in complex dynamic physical systems.",
+        "pdf": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.59.381",
+    },
+
+    # ==========================================
+    # --- ADDITIONAL CS & AI ---
+    # ==========================================
+    {
+        "id": "cs_16",
+        "title": "Support-Vector Networks",
+        "authors": "C. Cortes, V. Vapnik",
+        "year": "1995",
+        "category": "Machine Learning",
+        "parent": "Mathematics",
+        "summary": "Introduces Support Vector Machines (SVMs) for high-dimensional pattern classification.",
+        "pdf": "https://link.springer.com/article/10.1007/BF00994018",
+    },
+    {
+        "id": "cs_17",
+        "title": "Random Forests",
+        "authors": "Leo Breiman",
+        "year": "2001",
+        "category": "Machine Learning",
+        "parent": "Computer Science & AI",
+        "summary": "Breiman introduces Random Forests, combining decision trees with feature bagging.",
+        "pdf": "https://link.springer.com/article/10.1023/A:1010933404324",
+    },
+
+    # ==========================================
+    # --- ADDITIONAL PSYCHOLOGY ---
+    # ==========================================
+    {
+        "id": "psych_16",
+        "title": "Self-Efficacy: Toward a Unifying Theory of Behavioral Change",
+        "authors": "Albert Bandura",
+        "year": "1977",
+        "category": "General Psychology",
+        "parent": "Psychology & Cognitive Science",
+        "summary": "Bandura presents the framework of self-efficacy beliefs in human cognitive function and motivation.",
+        "pdf": "https://psycnet.apa.org/record/1977-25733-001",
+    },
+    {
+        "id": "psych_17",
+        "title": "Social Foundations of Thought and Action: A Social Cognitive Theory",
+        "authors": "Albert Bandura",
+        "year": "1986",
+        "category": "Social Psychology",
+        "parent": "Psychology & Cognitive Science",
+        "summary": "Bandura details triadic reciprocal determinism linking personal, behavioral, and environmental factors.",
+        "pdf": "https://www.google.com/search?q=Bandura+1986+Social+Foundations+pdf",
+    },
 ]
